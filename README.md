@@ -1,16 +1,20 @@
 # PeraWise AI
 
 A chat-based expense and utang tracker for students.
-Type things like "spent 150 on lunch" or "Ana owes me 200" and the AI saves them for you.
 
 **Live site:** https://perawise-ai-39790.web.app
 
 **Course:** Applications Development and Emerging Technologies (Final Project)
 **Track:** Web Development + AI
 
+## What it does
+- Chat: type "spent 150 on lunch" and the AI saves the expense.
+- Ask: "how much did I spend on food this week?"
+- Utang ledger (in progress): type "Ana owes me 200" or "I paid 900, split with Ben and Cris" and see who owes whom.
+
 ## Team
-- Leonard D Mori
-- Louise Xavier F Lauronilla
+- Leonard D Mori - development
+- Louise Xavier F Lauronilla - development, testing and documentation
 
 ## Tech stack
 - HTML, CSS and JavaScript (ES modules), no framework
