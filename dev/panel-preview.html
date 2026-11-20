@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ledger panel preview (dev only)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../public/css/style.css">
+  <link rel="stylesheet" href="../public/css/ledger.css">
+</head>
+<body>
+  <!--
+    DEV PREVIEW ONLY. This page uses fake data and is NOT deployed (it lives outside public/).
+    Leonard's JavaScript will later build this exact HTML structure from real data,
+    so keep the class names and the nesting exactly as they are.
+    Friend row states: positive | negative | settled
+  -->
+  <main class="container">
+    <section class="card wide">
+
+      <section id="ledger-panel" class="ledger">
+        <h2>Who owes whom</h2>
+
+        <div class="ledger-summary">
+          <div class="ledger-stat owed-to-you">
+            <span class="label">Owed to you</span>
+            <strong>₱300.00</strong>
+          </div>
+          <div class="ledger-stat you-owe">
+            <span class="label">You owe</span>
+            <strong>₱150.00</strong>
+          </div>
+        </div>
+
+        <!-- Shown by the JavaScript only when there are no entries at all -->
+        <p class="muted ledger-empty" hidden>No utang yet.</p>
+
+        <ul class="friend-list">
+
+          <!-- Friend 1: owes you (history open) -->
+          <li class="friend positive">
+            <button type="button" class="friend-row" aria-expanded="true">
+              <span class="friend-name">Ana</span>
+              <span class="friend-balance">Owes you ₱100.00</span>
+            </button>
+            <ul class="history">
+              <li class="entry">
+                <div class="entry-info">
+                  <strong>Lunch</strong>
+                  <span class="muted">Lent - 2026-11-18</span>
+                </div>
+                <span class="entry-amount">₱200.00</span>
+                <button type="button" class="delete">Delete</button>
+              </li>
+              <li class="entry">
+                <div class="entry-info">
+                  <strong>Paid back</strong>
+                  <span class="muted">Paid you back - 2026-11-20</span>
+                </div>
+                <span class="entry-amount">₱100.00</span>
+                <button type="button" class="delete">Delete</button>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Friend 2: owes you (history closed) -->
+          <li class="friend positive">
+            <button type="button" class="friend-row" aria-expanded="false">
+              <span class="friend-name">Cris</span>
+              <span class="friend-balance">Owes you ₱200.00</span>
+            </button>
+            <ul class="history" hidden>
+              <li class="entry">
+                <div class="entry-info">
+                  <strong>Dinner split</strong>
+                  <span class="muted">Lent - 2026-11-19</span>
+                </div>
+                <span class="entry-amount">₱200.00</span>
+                <button type="button" class="delete">Delete</button>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Friend 3: you owe them -->
+          <li class="friend negative">
+            <button type="button" class="friend-row" aria-expanded="false">
+              <span class="friend-name">Ben</span>
+              <span class="friend-balance">You owe ₱150.00</span>
+            </button>
+            <ul class="history" hidden>
+              <li class="entry">
+                <div class="entry-info">
+                  <strong>Jeepney fare and snacks</strong>
+                  <span class="muted">Borrowed - 2026-11-17</span>
+                </div>
+                <span class="entry-amount">₱150.00</span>
+                <button type="button" class="delete">Delete</button>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Friend 4: settled (balance is zero) -->
+          <li class="friend settled">
+            <button type="button" class="friend-row" aria-expanded="false">
+              <span class="friend-name">Dan</span>
+              <span class="friend-balance">Settled</span>
+            </button>
+            <ul class="history" hidden>
+              <li class="entry">
+                <div class="entry-info">
+                  <strong>Load</strong>
+                  <span class="muted">Lent - 2026-11-10</span>
+                </div>
+                <span class="entry-amount">₱50.00</span>
+                <button type="button" class="delete">Delete</button>
+              </li>
+              <li class="entry">
+                <div class="entry-info">
+                  <strong>Paid back</strong>
+                  <span class="muted">Paid you back - 2026-11-12</span>
+                </div>
+                <span class="entry-amount">₱50.00</span>
+                <button type="button" class="delete">Delete</button>
+              </li>
+            </ul>
+          </li>
+
+        </ul>
+      </section>
+
+    </section>
+  </main>
+
+  <!-- Preview-only toggle so you can test open/close while styling. Leonard's real code replaces this. -->
+  <script>
+    document.querySelectorAll(".friend-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        const history = row.nextElementSibling;
+        const open = row.getAttribute("aria-expanded") === "true";
+        row.setAttribute("aria-expanded", String(!open));
+        history.hidden = open;
+      });
+    });
+  </script>
+</body>
+</html>
