@@ -85,7 +85,7 @@ export const TOOLS = [
       {
         name: "record_repayment",
         description:
-          "Record that existing utang was paid back: a friend paying the user back, or the user paying a friend back. It only works if that utang is already recorded; otherwise it returns an error.",
+          "Record that existing utang was paid back: a friend paying the user back, or the user paying a friend back. It only works if that utang is already recorded; otherwise it returns an error (with missing_utang_amount when some utang was never recorded).",
         parameters: Schema.object({
           properties: {
             friend_name: Schema.string({ description: "The friend's name only. Never 'me' or 'I'." }),
@@ -299,7 +299,11 @@ async function toolRecordRepayment(uid, args, context) {
     amountCentavos: money.centavos,
     direction: dir.direction,
   });
-  if (check.error) return { error: check.error, reason: check.reason };
+  if (check.error) {
+    const refused = { error: check.error, reason: check.reason };
+    if (check.missingCentavos) refused.missing_utang_amount = formatCentavos(check.missingCentavos);
+    return refused;
+  }
 
   await addLedgerEntries(uid, [
     {

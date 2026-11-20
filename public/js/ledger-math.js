@@ -134,8 +134,8 @@ export function splitBill({ totalCentavos, friends, paidBy = "me" } = {}) {
     } else if (!people.has(payer.key)) {
       return {
         error:
-          payer.name +
-          " paid, but is not in the list of friends sharing this bill. Add them to the friends list, or ask the user who really paid.",
+          payer.name + " paid, so " + payer.name + " must also be in participants. Call split_bill again with " +
+          payer.name + " added to participants.",
       };
     } else {
       payerKey = payer.key;
@@ -239,9 +239,13 @@ export function computeBalances(entries) {
 // ---------- Checking a repayment ----------
 // direction: "they_paid_me" (a friend pays the user back) or "i_paid_them" (the user pays a friend back)
 // balanceCentavos must come from a fresh read of the ledger (positive = the friend owes the user).
-// Returns { ok: true, type, remainingCentavos } or { error, reason, balanceCentavos }.
+// Returns { ok: true, type, remainingCentavos }
+// or { error, reason, balanceCentavos, missingCentavos? }.
+// missingCentavos is the part of the repayment that has no recorded utang behind it.
 export function checkRepayment({ friendName, balanceCentavos, amountCentavos, direction }) {
-  const hint = " If the original utang was never recorded, offer to record it first.";
+  const missingHint = (missing) =>
+    " The missing utang is " + formatCentavos(missing) +
+    ". If it was never recorded, offer to record that amount as utang first.";
 
   if (direction !== "they_paid_me" && direction !== "i_paid_them") {
     return { error: "direction must be they_paid_me or i_paid_them.", reason: "bad_direction", balanceCentavos };
@@ -253,9 +257,10 @@ export function checkRepayment({ friendName, balanceCentavos, amountCentavos, di
   if (direction === "they_paid_me") {
     if (balanceCentavos === 0) {
       return {
-        error: friendName + " does not owe the user anything right now." + hint,
+        error: friendName + " does not owe the user anything right now." + missingHint(amountCentavos),
         reason: "no_debt",
         balanceCentavos,
+        missingCentavos: amountCentavos,
       };
     }
     if (balanceCentavos < 0) {
@@ -268,12 +273,14 @@ export function checkRepayment({ friendName, balanceCentavos, amountCentavos, di
       };
     }
     if (amountCentavos > balanceCentavos) {
+      const missing = amountCentavos - balanceCentavos;
       return {
         error:
           friendName + " only owes the user " + formatCentavos(balanceCentavos) +
-          ", but the repayment is " + formatCentavos(amountCentavos) + "." + hint,
+          ", but the repayment is " + formatCentavos(amountCentavos) + "." + missingHint(missing),
         reason: "too_much",
         balanceCentavos,
+        missingCentavos: missing,
       };
     }
     return { ok: true, type: "they_paid", remainingCentavos: balanceCentavos - amountCentavos };
@@ -282,9 +289,10 @@ export function checkRepayment({ friendName, balanceCentavos, amountCentavos, di
   // direction === "i_paid_them"
   if (balanceCentavos === 0) {
     return {
-      error: "The user does not owe " + friendName + " anything right now." + hint,
+      error: "The user does not owe " + friendName + " anything right now." + missingHint(amountCentavos),
       reason: "no_debt",
       balanceCentavos,
+      missingCentavos: amountCentavos,
     };
   }
   if (balanceCentavos > 0) {
@@ -298,12 +306,14 @@ export function checkRepayment({ friendName, balanceCentavos, amountCentavos, di
   }
   const owed = -balanceCentavos;
   if (amountCentavos > owed) {
+    const missing = amountCentavos - owed;
     return {
       error:
         "The user only owes " + friendName + " " + formatCentavos(owed) +
-        ", but the repayment is " + formatCentavos(amountCentavos) + "." + hint,
+        ", but the repayment is " + formatCentavos(amountCentavos) + "." + missingHint(missing),
       reason: "too_much",
       balanceCentavos,
+      missingCentavos: missing,
     };
   }
   return { ok: true, type: "i_paid", remainingCentavos: balanceCentavos + amountCentavos };
