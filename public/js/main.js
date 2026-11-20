@@ -1,4 +1,6 @@
 import { initChat } from "./chat.js";
+import { watchLedger } from "./ledger.js";
+import { initLedgerPanel } from "./ledger-ui.js";
 import { signUp, logIn, logOut, watchAuth, friendlyError } from "./auth.js";
 import {
   CATEGORIES, addExpense, deleteExpense, watchExpenses, todayString, formatPeso,
@@ -35,7 +37,9 @@ const totalEl = document.getElementById("total");
 let isSignUp = false;
 let currentUser = null;
 let stopExpenses = null;
+let stopLedger = null;
 const chat = initChat(() => currentUser);
+const ledgerPanel = initLedgerPanel(() => currentUser);
 
 // ---------- Auth UI ----------
 function setMode(signUpMode) {
@@ -167,9 +171,15 @@ watchAuth((user) => {
     stopExpenses();
     stopExpenses = null;
   }
+  if (stopLedger) {
+    stopLedger();
+    stopLedger = null;
+  }
+  ledgerPanel.clear();
   if (user) {
     showWelcome(user);
     stopExpenses = watchExpenses(user.uid, renderExpenses);
+    stopLedger = watchLedger(user.uid, ledgerPanel.render);
   } else {
     expenseList.replaceChildren();
   }

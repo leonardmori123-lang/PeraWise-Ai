@@ -6,6 +6,7 @@
   <title>PeraWise AI</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/ledger.css">
 </head>
 <body>
   <main class="container">
@@ -44,6 +45,23 @@
         </form>
       </div>
       
+      <section id="ledger-panel" class="ledger">
+        <h2>Who owes whom</h2>
+        <div class="ledger-summary">
+          <div class="ledger-stat owed-to-you">
+            <span class="label">Owed to you</span>
+            <strong id="ledger-owed">₱0.00</strong>
+          </div>
+          <div class="ledger-stat you-owe">
+            <span class="label">You owe</span>
+            <strong id="ledger-owe">₱0.00</strong>
+          </div>
+        </div>
+        <p id="ledger-empty" class="muted ledger-empty">No utang yet.</p>
+        <ul id="friend-list" class="friend-list"></ul>
+        <p id="ledger-message" class="message" role="alert"></p>
+      </section>
+
       <h2>Add expense</h2>
       <form id="expense-form">
         <div class="row">
