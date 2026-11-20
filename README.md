@@ -13,8 +13,8 @@ A chat-based expense and utang tracker for students.
 - Utang ledger (in progress): type "Ana owes me 200" or "I paid 900, split with Ben and Cris" and see who owes whom.
 
 ## Team
-- Leonard D Mori - development
-- Louise Xavier F Lauronilla - development, testing and documentation
+- Leonard D Mori
+- Louise Xavier F Lauronilla
 
 ## Tech stack
 - HTML, CSS and JavaScript (ES modules), no framework
