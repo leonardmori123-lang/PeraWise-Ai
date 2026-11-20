@@ -29,6 +29,7 @@ export function initLedgerPanel(getUser) {
 
   // Friends whose history is open. Kept when the list refreshes, so a live update does not close it.
   const open = new Set();
+  let friendNames = []; // names currently shown, handed to the AI so it can reuse the same spelling
 
   async function removeEntry(entry, button) {
     const user = getUser();
@@ -124,6 +125,7 @@ export function initLedgerPanel(getUser) {
     const focusedKey = focusedFriend ? focusedFriend.dataset.key : null;
 
     const { friends, owedToYou, youOwe } = computeBalances(entries);
+    friendNames = friends.map((f) => f.friendName);
     owedEl.textContent = formatCentavos(owedToYou);
     oweEl.textContent = formatCentavos(youOwe);
     emptyEl.hidden = friends.length > 0;
@@ -156,5 +158,5 @@ export function initLedgerPanel(getUser) {
     render([]);
   }
 
-  return { render, clear };
+  return { render, clear, getFriendNames: () => friendNames.slice() };
 }

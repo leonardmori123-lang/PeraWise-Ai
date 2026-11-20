@@ -38,8 +38,8 @@ let isSignUp = false;
 let currentUser = null;
 let stopExpenses = null;
 let stopLedger = null;
-const chat = initChat(() => currentUser);
 const ledgerPanel = initLedgerPanel(() => currentUser);
+const chat = initChat(() => currentUser, () => ledgerPanel.getFriendNames());
 
 // ---------- Auth UI ----------
 function setMode(signUpMode) {

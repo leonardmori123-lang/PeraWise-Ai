@@ -2,9 +2,9 @@ import { runAgent } from "./ai-agent.js";
 
 const MAX_HISTORY_MESSAGES = 8; // remembers the last 4 exchanges
 const GREETING =
-  'Hi! Tell me what you spent, like "spent 150 on lunch", or ask "how much did I spend on food this week?"';
+  'Hi! Tell me what you spent, like "spent 150 on lunch". I also track utang: try "Ana owes me 200" or "I paid 900, split with Ben and Cris".';
 
-export function initChat(getUser) {
+export function initChat(getUser, getFriends = () => []) {
   const form = document.getElementById("chat-form");
   const input = document.getElementById("chat-input");
   const sendBtn = document.getElementById("chat-send");
@@ -41,7 +41,7 @@ export function initChat(getUser) {
     const bubble = addBubble("Thinking...", "bot thinking");
 
     try {
-      const reply = await runAgent({ uid: user.uid, text, history });
+      const reply = await runAgent({ uid: user.uid, text, history, friends: getFriends() });
       bubble.textContent = reply;
       history.push(
         { role: "user", parts: [{ text }] },
