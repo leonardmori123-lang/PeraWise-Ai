@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PeraWise AI</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="container">
+
+    <section id="auth-view" class="card" hidden>
+      <h1 class="brand">PeraWise <span>AI</span></h1>
+      <h2 id="auth-title">Welcome back</h2>
+      <form id="auth-form">
+        <div id="name-field" hidden>
+          <label for="name">Name</label>
+          <input id="name" type="text" autocomplete="name" placeholder="Your name">
+        </div>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
+        <button id="submit-btn" type="submit">Log in</button>
+        <p id="auth-message" class="message" role="alert"></p>
+      </form>
+      <p class="toggle"><span id="toggle-text">New to PeraWise?</span> <a href="#" id="toggle-mode">Sign up</a></p>
+    </section>
+
+        <section id="app-view" class="card wide" hidden>
+      <div class="topbar">
+        <h1 class="brand">PeraWise <span>AI</span></h1>
+        <button id="logout-btn" type="button" class="secondary small">Log out</button>
+      </div>
+      <p id="welcome"></p>
+      
+      <h2>Chat with PeraWise AI</h2>
+      <div class="chat">
+        <div id="chat-log" class="chat-log" aria-live="polite"></div>
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" type="text" maxlength="300" autocomplete="off" placeholder='Try: "spent 150 on lunch"'>
+          <button id="chat-send" type="submit">Send</button>
+        </form>
+      </div>
+      
+      <h2>Add expense</h2>
+      <form id="expense-form">
+        <div class="row">
+          <div>
+            <label for="amount">Amount (PHP)</label>
+            <input id="amount" type="number" inputmode="decimal" step="0.01" min="0.01" max="9999999" placeholder="150" required>
+          </div>
+          <div>
+            <label for="category">Category</label>
+            <select id="category" required></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="date">Date</label>
+            <input id="date" type="date" required>
+          </div>
+          <div>
+            <label for="note">Note</label>
+            <input id="note" type="text" maxlength="200" placeholder="Lunch at canteen">
+          </div>
+        </div>
+        <button id="add-btn" type="submit">Add expense</button>
+        <p id="expense-message" class="message" role="alert"></p>
+      </form>
+
+      <h2>Your expenses</h2>
+      <p class="total">Total spent: <strong id="total">PHP 0.00</strong></p>
+      <p id="empty-msg" class="muted">No expenses yet. Add your first one above.</p>
+      <ul id="expense-list" class="expense-list"></ul>
+    </section>
+
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
