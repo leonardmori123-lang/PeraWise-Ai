@@ -90,6 +90,8 @@
 }
 
 .friend-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: 600;
   color: var(--text);
 }
