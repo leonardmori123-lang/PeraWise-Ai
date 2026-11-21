@@ -1,10 +1,7 @@
-/* Ledger panel styles */
-
 .ledger {
   margin: 24px 0;
 }
 
-/* Summary stats: Owed to you / You owe */
 .ledger-summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -28,7 +25,7 @@
 .ledger-stat .label {
   display: block;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--fadedInk);
   margin-bottom: 4px;
 }
 
@@ -36,22 +33,21 @@
   display: block;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--inkMain);
 }
 
 .ledger-stat.owed-to-you strong {
-  color: var(--accent);
+  color: var(--pwGreen);
 }
 
 .ledger-stat.you-owe strong {
-  color: var(--error);
+  color: var(--oopsRed);
 }
 
 .ledger-empty {
   margin: 12px 0;
 }
 
-/* Friend list */
 .friend-list {
   list-style: none;
   margin: 0;
@@ -73,7 +69,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--text);
+  color: var(--inkMain);
   font-family: inherit;
   font-size: 1rem;
   text-align: left;
@@ -85,7 +81,7 @@
 }
 
 .friend-row:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--pwGreen);
   outline-offset: -2px;
 }
 
@@ -93,7 +89,7 @@
   min-width: 0;
   overflow-wrap: anywhere;
   font-weight: 600;
-  color: var(--text);
+  color: var(--inkMain);
 }
 
 .friend-balance {
@@ -102,18 +98,17 @@
 }
 
 .friend.positive .friend-balance {
-  color: var(--accent);
+  color: var(--pwGreen);
 }
 
 .friend.negative .friend-balance {
-  color: var(--error);
+  color: var(--oopsRed);
 }
 
 .friend.settled .friend-balance {
-  color: var(--muted);
+  color: var(--fadedInk);
 }
 
-/* Expandable transaction history */
 .history {
   list-style: none;
   margin: 0;

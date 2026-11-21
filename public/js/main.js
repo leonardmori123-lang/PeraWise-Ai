@@ -6,181 +6,176 @@ import {
   CATEGORIES, addExpense, deleteExpense, watchExpenses, todayString, formatPeso,
 } from "./expenses.js";
 
-// ---------- Auth elements ----------
-const authView = document.getElementById("auth-view");
-const appView = document.getElementById("app-view");
-const authForm = document.getElementById("auth-form");
-const nameField = document.getElementById("name-field");
-const nameInput = document.getElementById("name");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const submitBtn = document.getElementById("submit-btn");
-const toggleLink = document.getElementById("toggle-mode");
-const toggleText = document.getElementById("toggle-text");
-const authTitle = document.getElementById("auth-title");
-const authMessage = document.getElementById("auth-message");
-const welcome = document.getElementById("welcome");
-const logoutBtn = document.getElementById("logout-btn");
+const loginBox = document.getElementById("auth-view");
+const homeBox = document.getElementById("app-view");
+const loginForm = document.getElementById("auth-form");
+const pangalanField = document.getElementById("name-field");
+const pangalanInput = document.getElementById("name");
+const emailBox = document.getElementById("email");
+const passBox = document.getElementById("password");
+const pasokBtn = document.getElementById("submit-btn");
+const palitLink = document.getElementById("toggle-mode");
+const palitTxt = document.getElementById("toggle-text");
+const loginTitle = document.getElementById("auth-title");
+const loginMsg = document.getElementById("auth-message");
+const helloLine = document.getElementById("welcome");
+const labasBtn = document.getElementById("logout-btn");
 
-// ---------- Expense elements ----------
-const expenseForm = document.getElementById("expense-form");
-const amountInput = document.getElementById("amount");
-const categorySelect = document.getElementById("category");
-const dateInput = document.getElementById("date");
-const noteInput = document.getElementById("note");
-const addBtn = document.getElementById("add-btn");
-const expenseMessage = document.getElementById("expense-message");
-const expenseList = document.getElementById("expense-list");
-const emptyMsg = document.getElementById("empty-msg");
-const totalEl = document.getElementById("total");
+const gastosForm = document.getElementById("expense-form");
+const halagaBox = document.getElementById("amount");
+const kategoryaBox = document.getElementById("category");
+const petsaBox = document.getElementById("date");
+const noteBox = document.getElementById("note");
+const dagdagBtn = document.getElementById("add-btn");
+const gastosMsg = document.getElementById("expense-message");
+const gastosUl = document.getElementById("expense-list");
+const walangGastos = document.getElementById("empty-msg");
+const totalBox = document.getElementById("total");
 
-let isSignUp = false;
-let currentUser = null;
-let stopExpenses = null;
-let stopLedger = null;
-const ledgerPanel = initLedgerPanel(() => currentUser);
-const chat = initChat(() => currentUser, () => ledgerPanel.getFriendNames());
+let gawaAccount = false;
+let nakaLogin = null;
+let tigilGastos = null;
+let tigilUtang = null;
+const panelUtang = initLedgerPanel(() => nakaLogin);
+const usapChat = initChat(() => nakaLogin, () => panelUtang.getFriendNames());
 
-// ---------- Auth UI ----------
-function setMode(signUpMode) {
-  isSignUp = signUpMode;
-  authTitle.textContent = isSignUp ? "Create your account" : "Welcome back";
-  submitBtn.textContent = isSignUp ? "Sign up" : "Log in";
-  nameField.hidden = !isSignUp;
-  toggleText.textContent = isSignUp ? "Already have an account?" : "New to PeraWise?";
-  toggleLink.textContent = isSignUp ? "Log in" : "Sign up";
-  passwordInput.autocomplete = isSignUp ? "new-password" : "current-password";
-  authMessage.textContent = "";
+function palitMode(signUpMuna) {
+  gawaAccount = signUpMuna;
+  loginTitle.textContent = gawaAccount ? "Create your account" : "Welcome back";
+  pasokBtn.textContent = gawaAccount ? "Sign up" : "Log in";
+  pangalanField.hidden = !gawaAccount;
+  palitTxt.textContent = gawaAccount ? "Already have an account?" : "New to PeraWise?";
+  palitLink.textContent = gawaAccount ? "Log in" : "Sign up";
+  passBox.autocomplete = gawaAccount ? "new-password" : "current-password";
+  loginMsg.textContent = "";
 }
 
-function showWelcome(user) {
-  welcome.textContent = "Hello, " + (user.displayName || user.email) + "!";
+function sabihinHello(sinoUser) {
+  helloLine.textContent = "Hello, " + (sinoUser.displayName || sinoUser.email) + "!";
 }
 
-toggleLink.addEventListener("click", (e) => {
-  e.preventDefault();
-  setMode(!isSignUp);
+palitLink.addEventListener("click", (clickEvt) => {
+  clickEvt.preventDefault();
+  palitMode(!gawaAccount);
 });
 
-authForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  authMessage.textContent = "";
-  submitBtn.disabled = true;
+loginForm.addEventListener("submit", async (submitEvt) => {
+  submitEvt.preventDefault();
+  loginMsg.textContent = "";
+  pasokBtn.disabled = true;
   try {
-    const email = emailInput.value.trim();
-    if (isSignUp) {
-      const user = await signUp(nameInput.value.trim(), email, passwordInput.value);
-      showWelcome(user);
+    const sulatEmail = emailBox.value.trim();
+    if (gawaAccount) {
+      const bagongUser = await signUp(pangalanInput.value.trim(), sulatEmail, passBox.value);
+      sabihinHello(bagongUser);
     } else {
-      await logIn(email, passwordInput.value);
+      await logIn(sulatEmail, passBox.value);
     }
-    authForm.reset();
-  } catch (error) {
-    authMessage.textContent = friendlyError(error);
+    loginForm.reset();
+  } catch (siraAuth) {
+    loginMsg.textContent = friendlyError(siraAuth);
   } finally {
-    submitBtn.disabled = false;
+    pasokBtn.disabled = false;
   }
 });
 
-logoutBtn.addEventListener("click", () => logOut());
+labasBtn.addEventListener("click", () => logOut());
 
-// ---------- Expenses UI ----------
-function populateCategories() {
-  CATEGORIES.forEach((c) => {
-    const option = document.createElement("option");
-    option.value = c;
-    option.textContent = c;
-    categorySelect.appendChild(option);
+function lagayKategorya() {
+  CATEGORIES.forEach((pangalanCat) => {
+    const optNya = document.createElement("option");
+    optNya.value = pangalanCat;
+    optNya.textContent = pangalanCat;
+    kategoryaBox.appendChild(optNya);
   });
 }
 
-function renderExpenses(items) {
-  expenseList.replaceChildren();
-  let total = 0;
+function ipakitaGastos(mgaItem) {
+  gastosUl.replaceChildren();
+  let kabuuan = 0;
 
-  items.forEach((item) => {
-    total += item.amount;
+  mgaItem.forEach((isaItem) => {
+    kabuuan += isaItem.amount;
 
-    const li = document.createElement("li");
-    li.className = "expense";
+    const rowLi = document.createElement("li");
+    rowLi.className = "expense";
 
-    const info = document.createElement("div");
-    info.className = "expense-info";
-    const title = document.createElement("strong");
-    title.textContent = item.note || item.category;
-    const sub = document.createElement("span");
-    sub.className = "muted";
-    sub.textContent = item.category + " - " + item.date;
-    info.append(title, sub);
+    const infoBox = document.createElement("div");
+    infoBox.className = "expense-info";
+    const pamagat = document.createElement("strong");
+    pamagat.textContent = isaItem.note || isaItem.category;
+    const detalye = document.createElement("span");
+    detalye.className = "muted";
+    detalye.textContent = isaItem.category + " - " + isaItem.date;
+    infoBox.append(pamagat, detalye);
 
-    const amount = document.createElement("div");
-    amount.className = "expense-amount";
-    amount.textContent = formatPeso(item.amount);
+    const pesoBox = document.createElement("div");
+    pesoBox.className = "expense-amount";
+    pesoBox.textContent = formatPeso(isaItem.amount);
 
-    const del = document.createElement("button");
-    del.type = "button";
-    del.className = "delete";
-    del.textContent = "Delete";
-    del.addEventListener("click", () => deleteExpense(currentUser.uid, item.id));
+    const burahinBtn = document.createElement("button");
+    burahinBtn.type = "button";
+    burahinBtn.className = "delete";
+    burahinBtn.textContent = "Delete";
+    burahinBtn.addEventListener("click", () => deleteExpense(nakaLogin.uid, isaItem.id));
 
-    li.append(info, amount, del);
-    expenseList.appendChild(li);
+    rowLi.append(infoBox, pesoBox, burahinBtn);
+    gastosUl.appendChild(rowLi);
   });
 
-  totalEl.textContent = formatPeso(total);
-  emptyMsg.hidden = items.length > 0;
+  totalBox.textContent = formatPeso(kabuuan);
+  walangGastos.hidden = mgaItem.length > 0;
 }
 
-expenseForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  expenseMessage.textContent = "";
-  const amount = parseFloat(amountInput.value);
-  if (!(amount > 0)) {
-    expenseMessage.textContent = "Enter an amount greater than 0.";
+gastosForm.addEventListener("submit", async (submitEvt) => {
+  submitEvt.preventDefault();
+  gastosMsg.textContent = "";
+  const halagaNum = parseFloat(halagaBox.value);
+  if (!(halagaNum > 0)) {
+    gastosMsg.textContent = "Enter an amount greater than 0.";
     return;
   }
-  addBtn.disabled = true;
+  dagdagBtn.disabled = true;
   try {
-    await addExpense(currentUser.uid, {
-      amount,
-      category: categorySelect.value,
-      note: noteInput.value.trim(),
-      date: dateInput.value,
+    await addExpense(nakaLogin.uid, {
+      amount: halagaNum,
+      category: kategoryaBox.value,
+      note: noteBox.value.trim(),
+      date: petsaBox.value,
     });
-    expenseForm.reset();
-    dateInput.value = todayString();
-  } catch (error) {
-    console.error(error);
-    expenseMessage.textContent = "Could not save the expense. Please try again.";
+    gastosForm.reset();
+    petsaBox.value = todayString();
+  } catch (siraSave) {
+    console.error(siraSave);
+    gastosMsg.textContent = "Could not save the expense. Please try again.";
   } finally {
-    addBtn.disabled = false;
+    dagdagBtn.disabled = false;
   }
 });
 
-// ---------- Start ----------
-populateCategories();
-dateInput.value = todayString();
+lagayKategorya();
+petsaBox.value = todayString();
 
-watchAuth((user) => {
-  chat.reset();
-  currentUser = user;
-  authView.hidden = !!user;
-  appView.hidden = !user;
+watchAuth((sinoUser) => {
+  usapChat.reset();
+  nakaLogin = sinoUser;
+  loginBox.hidden = !!sinoUser;
+  homeBox.hidden = !sinoUser;
 
-  if (stopExpenses) {
-    stopExpenses();
-    stopExpenses = null;
+  if (tigilGastos) {
+    tigilGastos();
+    tigilGastos = null;
   }
-  if (stopLedger) {
-    stopLedger();
-    stopLedger = null;
+  if (tigilUtang) {
+    tigilUtang();
+    tigilUtang = null;
   }
-  ledgerPanel.clear();
-  if (user) {
-    showWelcome(user);
-    stopExpenses = watchExpenses(user.uid, renderExpenses);
-    stopLedger = watchLedger(user.uid, ledgerPanel.render);
+  panelUtang.clear();
+  if (sinoUser) {
+    sabihinHello(sinoUser);
+    tigilGastos = watchExpenses(sinoUser.uid, ipakitaGastos);
+    tigilUtang = watchLedger(sinoUser.uid, panelUtang.render);
   } else {
-    expenseList.replaceChildren();
+    gastosUl.replaceChildren();
   }
 });

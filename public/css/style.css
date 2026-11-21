@@ -1,10 +1,10 @@
 :root {
-  --accent: #0f5c5c;
-  --accent-dark: #0a4343;
-  --bg: #f3f7f7;
-  --text: #1b1b1b;
-  --muted: #5f6b6b;
-  --error: #b3261e;
+  --pwGreen: #0f5c5c;
+  --pwGreenDark: #0a4343;
+  --pageWash: #f3f7f7;
+  --inkMain: #1b1b1b;
+  --fadedInk: #5f6b6b;
+  --oopsRed: #b3261e;
 }
 
 * { box-sizing: border-box; }
@@ -13,8 +13,8 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--pageWash);
+  color: var(--inkMain);
 }
 
 .container {
@@ -34,8 +34,8 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-.brand { margin: 0 0 4px; font-size: 1.6rem; color: var(--accent); }
-.brand span { color: var(--text); }
+.brand { margin: 0 0 4px; font-size: 1.6rem; color: var(--pwGreen); }
+.brand span { color: var(--inkMain); }
 h2 { margin: 0 0 16px; font-size: 1.1rem; font-weight: 600; }
 
 label { display: block; margin: 12px 0 4px; font-size: 0.85rem; font-weight: 600; }
@@ -47,7 +47,7 @@ input {
   border-radius: 8px;
   font-size: 1rem;
 }
-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+input:focus { outline: 2px solid var(--pwGreen); border-color: transparent; }
 
 button {
   width: 100%;
@@ -55,22 +55,21 @@ button {
   padding: 11px;
   border: 0;
   border-radius: 8px;
-  background: var(--accent);
+  background: var(--pwGreen);
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
 }
-button:hover { background: var(--accent-dark); }
+button:hover { background: var(--pwGreenDark); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-button.secondary { background: #e4eded; color: var(--accent); }
+button.secondary { background: #e4eded; color: var(--pwGreen); }
 
-.message { min-height: 1.2em; margin: 10px 0 0; color: var(--error); font-size: 0.9rem; }
+.message { min-height: 1.2em; margin: 10px 0 0; color: var(--oopsRed); font-size: 0.9rem; }
 .toggle { margin: 14px 0 0; text-align: center; font-size: 0.9rem; }
-.toggle a { color: var(--accent); font-weight: 600; }
-.muted { color: var(--muted); }
+.toggle a { color: var(--pwGreen); font-weight: 600; }
+.muted { color: var(--fadedInk); }
 
-/* ---------- Logged-in view ---------- */
 .card.wide { max-width: 560px; }
 
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -111,7 +110,7 @@ button.delete {
   padding: 6px 10px;
   font-size: 0.8rem;
   background: #fbe9e7;
-  color: var(--error);
+  color: var(--oopsRed);
 }
 button.delete:hover { background: #f5d3ce; }
 
@@ -134,9 +133,9 @@ button.delete:hover { background: #f5d3ce; }
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
-.bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
-.bubble.bot { align-self: flex-start; background: #e8f2f2; color: var(--text); border-bottom-left-radius: 4px; }
-.bubble.thinking { color: var(--muted); font-style: italic; }
+.bubble.user { align-self: flex-end; background: var(--pwGreen); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.bot { align-self: flex-start; background: #e8f2f2; color: var(--inkMain); border-bottom-left-radius: 4px; }
+.bubble.thinking { color: var(--fadedInk); font-style: italic; }
 .chat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #d9e5e5; background: #fff; }
 .chat-form input { flex: 1; }
 .chat-form button { width: auto; margin: 0; padding: 10px 16px; }

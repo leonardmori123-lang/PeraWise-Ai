@@ -4,7 +4,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/13.1.0/firebase
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app-check.js";
 import { getAI, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-ai.js";
 
-const firebaseConfig = {
+const fbBits = {
   apiKey: "AIzaSyAHi1iXEIFlPs3glrbkZrigRjAPd2RaZyI",
   authDomain: "perawise-ai-39790.firebaseapp.com",
   databaseURL: "https://perawise-ai-39790-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -14,14 +14,13 @@ const firebaseConfig = {
   appId: "1:1085090047169:web:94f6911223552b4af52040"
 };
 
-// Debug token is only used when running on your own computer
-if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+const hostNow = location.hostname;
+if (hostNow === "localhost" || hostNow === "127.0.0.1") {
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 }
 
-export const app = initializeApp(firebaseConfig);
+export const app = initializeApp(fbBits);
 
-// Placeholder key for now; the real reCAPTCHA key is added before deployment
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider("6LdewScuAAAAAL_RXWOc4cRunF6Fn32EotcUKCa5"),
   isTokenAutoRefreshEnabled: true,

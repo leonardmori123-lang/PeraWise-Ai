@@ -9,13 +9,6 @@ import {
 
 console.info("ai-tools.js loaded");
 
-// How tools talk to ai-agent.js:
-// - WRITE tools (they save data) return { success: true, message: "..." } on success.
-//   ai-agent.js collects those messages so nothing is saved twice if a model fails afterwards.
-// - READ tools (they only look data up) must NOT return "success", so they are never counted as saves.
-// - Any problem is returned as { error: "..." } so the AI can explain it to the user.
-
-// ---------- The only functions the AI is allowed to request ----------
 export const TOOLS = [
   {
     functionDeclarations: [
@@ -145,300 +138,294 @@ export const TOOLS = [
   },
 ];
 
-// ---------- Tool implementations (they run in the app, never inside the AI) ----------
-function findCategory(name) {
-  return CATEGORIES.find((c) => c.toLowerCase() === String(name || "").trim().toLowerCase());
+function hanapCat(pangalanCat) {
+  return CATEGORIES.find((isaCat) => isaCat.toLowerCase() === String(pangalanCat || "").trim().toLowerCase());
 }
 
-function round2(n) {
-  return Math.round(n * 100) / 100;
+function round2(numVal) {
+  return Math.round(numVal * 100) / 100;
 }
 
-async function toolAddExpense(uid, args) {
-  const amount = Number(args.amount);
-  if (!Number.isFinite(amount) || amount <= 0 || amount >= 10000000) {
+async function toolAddExpense(uidNya, argsNya) {
+  const halagaNum = Number(argsNya.amount);
+  if (!Number.isFinite(halagaNum) || halagaNum <= 0 || halagaNum >= 10000000) {
     return { error: "The amount must be a number greater than 0." };
   }
-  if (args.date && !isValidDate(args.date)) {
+  if (argsNya.date && !isValidDate(argsNya.date)) {
     return { error: "The date must be a real date written as YYYY-MM-DD." };
   }
-  const category = findCategory(args.category) || "Other";
-  const note = String(args.note || "").trim().slice(0, 200);
-  const date = args.date || todayString();
+  const kategoryaNya = hanapCat(argsNya.category) || "Other";
+  const noteNya = String(argsNya.note || "").trim().slice(0, 200);
+  const petsaNya = argsNya.date || todayString();
 
-  await addExpense(uid, { amount, category, note, date });
+  await addExpense(uidNya, { amount: halagaNum, category: kategoryaNya, note: noteNya, date: petsaNya });
   return {
     success: true,
-    saved: { amount, category, note, date },
-    message: "Saved " + formatPeso(amount) + " under " + category + " for " + date + ".",
+    saved: { amount: halagaNum, category: kategoryaNya, note: noteNya, date: petsaNya },
+    message: "Saved " + formatPeso(halagaNum) + " under " + kategoryaNya + " for " + petsaNya + ".",
   };
 }
 
-async function toolGetSummary(uid, args) {
-  if (!isValidDate(args.start_date) || !isValidDate(args.end_date)) {
+async function toolGetSummary(uidNya, argsNya) {
+  if (!isValidDate(argsNya.start_date) || !isValidDate(argsNya.end_date)) {
     return { error: "start_date and end_date must be real dates written as YYYY-MM-DD." };
   }
-  if (args.start_date > args.end_date) {
+  if (argsNya.start_date > argsNya.end_date) {
     return { error: "start_date must not be after end_date." };
   }
 
-  let items = await getExpensesInRange(uid, args.start_date, args.end_date);
-  const category = findCategory(args.category);
-  if (category) items = items.filter((i) => i.category === category);
+  let mgaItem = await getExpensesInRange(uidNya, argsNya.start_date, argsNya.end_date);
+  const kategoryaNya = hanapCat(argsNya.category);
+  if (kategoryaNya) mgaItem = mgaItem.filter((isaItem) => isaItem.category === kategoryaNya);
 
-  const byCategory = {};
-  let total = 0;
-  for (const item of items) {
-    total += item.amount;
-    byCategory[item.category] = round2((byCategory[item.category] || 0) + item.amount);
+  const perCat = {};
+  let kabuuan = 0;
+  for (const isaItem of mgaItem) {
+    kabuuan += isaItem.amount;
+    perCat[isaItem.category] = round2((perCat[isaItem.category] || 0) + isaItem.amount);
   }
 
   return {
-    start_date: args.start_date,
-    end_date: args.end_date,
-    category_filter: category || "all",
-    total_spent_php: round2(total),
-    expense_count: items.length,
-    by_category_php: byCategory,
-    expenses: items.slice(0, 15).map((i) => ({
-      date: i.date,
-      category: i.category,
-      note: i.note,
-      amount_php: i.amount,
+    start_date: argsNya.start_date,
+    end_date: argsNya.end_date,
+    category_filter: kategoryaNya || "all",
+    total_spent_php: round2(kabuuan),
+    expense_count: mgaItem.length,
+    by_category_php: perCat,
+    expenses: mgaItem.slice(0, 15).map((isaItem) => ({
+      date: isaItem.date,
+      category: isaItem.category,
+      note: isaItem.note,
+      amount_php: isaItem.amount,
     })),
   };
 }
 
-// ---------- Utang (shared expense ledger) tools ----------
-const TYPE_LABELS = {
+const tipoLabel = {
   lent: "lent",
   borrowed: "borrowed",
   they_paid: "friend paid back",
   i_paid: "user paid back",
 };
 
-// Lets a new entry reuse the spelling of a friend that is already on the panel ("ana" -> "Ana")
 function makeNameResolver(knownFriends) {
-  const byKey = new Map();
-  for (const raw of Array.isArray(knownFriends) ? knownFriends : []) {
-    const known = cleanName(raw);
-    if (!known.error && !byKey.has(known.key)) byKey.set(known.key, known.name);
+  const perSusi = new Map();
+  for (const hilawPangalan of Array.isArray(knownFriends) ? knownFriends : []) {
+    const kilala = cleanName(hilawPangalan);
+    if (!kilala.error && !perSusi.has(kilala.key)) perSusi.set(kilala.key, kilala.name);
   }
-  return (name) => {
-    const cleaned = cleanName(name);
-    return !cleaned.error && byKey.has(cleaned.key) ? byKey.get(cleaned.key) : name;
+  return (pangalanIn) => {
+    const linis = cleanName(pangalanIn);
+    return !linis.error && perSusi.has(linis.key) ? perSusi.get(linis.key) : pangalanIn;
   };
 }
 
-function readDate(value) {
-  if (value === undefined || value === null || value === "") return { date: todayString() };
-  if (!isValidDate(value)) return { error: "The date must be a real date written as YYYY-MM-DD." };
-  return { date: value };
+function readDate(petsaVal) {
+  if (petsaVal === undefined || petsaVal === null || petsaVal === "") return { date: todayString() };
+  if (!isValidDate(petsaVal)) return { error: "The date must be a real date written as YYYY-MM-DD." };
+  return { date: petsaVal };
 }
 
-function readDirection(value, allowed) {
-  return allowed.includes(value) ? { direction: value } : { error: "direction must be " + allowed.join(" or ") + "." };
+function readDirection(direksyon, allowedList) {
+  return allowedList.includes(direksyon) ? { direction: direksyon } : { error: "direction must be " + allowedList.join(" or ") + "." };
 }
 
-function shortNote(value) {
-  return String(value === undefined || value === null ? "" : value).replace(/\s+/g, " ").trim();
+function shortNote(noteVal) {
+  return String(noteVal === undefined || noteVal === null ? "" : noteVal).replace(/\s+/g, " ").trim();
 }
 
-function joinNames(names) {
-  if (names.length <= 1) return names.join("");
-  return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+function joinNames(pangalanArr) {
+  if (pangalanArr.length <= 1) return pangalanArr.join("");
+  return pangalanArr.slice(0, -1).join(", ") + " and " + pangalanArr[pangalanArr.length - 1];
 }
 
-async function toolRecordUtang(uid, args, context) {
-  const name = cleanName(args.friend_name);
-  if (name.error) return { error: name.error };
-  const money = pesosToCentavos(args.amount);
-  if (money.error) return { error: money.error };
-  const dir = readDirection(args.direction, ["they_owe_me", "i_owe_them"]);
-  if (dir.error) return dir;
-  const when = readDate(args.date);
-  if (when.error) return when;
+async function toolRecordUtang(uidNya, argsNya, contextNya) {
+  const pangalan = cleanName(argsNya.friend_name);
+  if (pangalan.error) return { error: pangalan.error };
+  const peraSent = pesosToCentavos(argsNya.amount);
+  if (peraSent.error) return { error: peraSent.error };
+  const direksyon = readDirection(argsNya.direction, ["they_owe_me", "i_owe_them"]);
+  if (direksyon.error) return direksyon;
+  const kailan = readDate(argsNya.date);
+  if (kailan.error) return kailan;
 
-  const friendName = makeNameResolver(context.knownFriends)(name.name);
-  const owedToUser = dir.direction === "they_owe_me";
-  await addLedgerEntries(uid, [
+  const pangalanShow = makeNameResolver(contextNya.knownFriends)(pangalan.name);
+  const silaMayUtang = direksyon.direction === "they_owe_me";
+  await addLedgerEntries(uidNya, [
     {
-      friendName,
-      type: owedToUser ? "lent" : "borrowed",
-      amountCentavos: money.centavos,
-      note: shortNote(args.note),
-      date: when.date,
+      friendName: pangalanShow,
+      type: silaMayUtang ? "lent" : "borrowed",
+      amountCentavos: peraSent.centavos,
+      note: shortNote(argsNya.note),
+      date: kailan.date,
     },
   ]);
   return {
     success: true,
-    message: owedToUser
-      ? "Recorded: " + friendName + " owes you " + formatCentavos(money.centavos) + "."
-      : "Recorded: you owe " + friendName + " " + formatCentavos(money.centavos) + ".",
+    message: silaMayUtang
+      ? "Recorded: " + pangalanShow + " owes you " + formatCentavos(peraSent.centavos) + "."
+      : "Recorded: you owe " + pangalanShow + " " + formatCentavos(peraSent.centavos) + ".",
   };
 }
 
-async function toolRecordRepayment(uid, args, context) {
-  const name = cleanName(args.friend_name);
-  if (name.error) return { error: name.error };
-  const money = pesosToCentavos(args.amount);
-  if (money.error) return { error: money.error };
-  const dir = readDirection(args.direction, ["they_paid_me", "i_paid_them"]);
-  if (dir.error) return dir;
-  const when = readDate(args.date);
-  if (when.error) return when;
+async function toolRecordRepayment(uidNya, argsNya, contextNya) {
+  const pangalan = cleanName(argsNya.friend_name);
+  if (pangalan.error) return { error: pangalan.error };
+  const peraSent = pesosToCentavos(argsNya.amount);
+  if (peraSent.error) return { error: peraSent.error };
+  const direksyon = readDirection(argsNya.direction, ["they_paid_me", "i_paid_them"]);
+  if (direksyon.error) return direksyon;
+  const kailan = readDate(argsNya.date);
+  if (kailan.error) return kailan;
 
-  // Always a fresh read from the server, so the check uses the real balance
-  const { friends } = computeBalances(await getLedgerFresh(uid));
-  const found = friends.find((f) => f.friendKey === name.key);
-  const friendName = found ? found.friendName : makeNameResolver(context.knownFriends)(name.name);
+  const { friends } = computeBalances(await getLedgerFresh(uidNya));
+  const nahanap = friends.find((isaFriend) => isaFriend.friendKey === pangalan.key);
+  const pangalanShow = nahanap ? nahanap.friendName : makeNameResolver(contextNya.knownFriends)(pangalan.name);
 
-  const check = checkRepayment({
-    friendName,
-    balanceCentavos: found ? found.balanceCentavos : 0,
-    amountCentavos: money.centavos,
-    direction: dir.direction,
+  const checkNya = checkRepayment({
+    friendName: pangalanShow,
+    balanceCentavos: nahanap ? nahanap.balanceCentavos : 0,
+    amountCentavos: peraSent.centavos,
+    direction: direksyon.direction,
   });
-  if (check.error) {
-    const refused = { error: check.error, reason: check.reason };
-    if (check.missingCentavos) refused.missing_utang_amount = formatCentavos(check.missingCentavos);
+  if (checkNya.error) {
+    const refused = { error: checkNya.error, reason: checkNya.reason };
+    if (checkNya.missingCentavos) refused.missing_utang_amount = formatCentavos(checkNya.missingCentavos);
     return refused;
   }
 
-  await addLedgerEntries(uid, [
+  await addLedgerEntries(uidNya, [
     {
-      friendName,
-      type: check.type,
-      amountCentavos: money.centavos,
-      note: shortNote(args.note),
-      date: when.date,
+      friendName: pangalanShow,
+      type: checkNya.type,
+      amountCentavos: peraSent.centavos,
+      note: shortNote(argsNya.note),
+      date: kailan.date,
     },
   ]);
 
-  const lead =
-    dir.direction === "they_paid_me"
-      ? "Recorded: " + friendName + " paid you back " + formatCentavos(money.centavos) + "."
-      : "Recorded: you paid " + friendName + " back " + formatCentavos(money.centavos) + ".";
-  const left = check.remainingCentavos;
-  const tail =
-    left === 0
-      ? friendName + " is now settled."
-      : left > 0
-        ? friendName + " still owes you " + formatCentavos(left) + "."
-        : "You still owe " + friendName + " " + formatCentavos(-left) + ".";
-  return { success: true, message: lead + " " + tail };
+  const unangSabi =
+    direksyon.direction === "they_paid_me"
+      ? "Recorded: " + pangalanShow + " paid you back " + formatCentavos(peraSent.centavos) + "."
+      : "Recorded: you paid " + pangalanShow + " back " + formatCentavos(peraSent.centavos) + ".";
+  const natira = checkNya.remainingCentavos;
+  const duloSabi =
+    natira === 0
+      ? pangalanShow + " is now settled."
+      : natira > 0
+        ? pangalanShow + " still owes you " + formatCentavos(natira) + "."
+        : "You still owe " + pangalanShow + " " + formatCentavos(-natira) + ".";
+  return { success: true, message: unangSabi + " " + duloSabi };
 }
 
-async function toolSplitBill(uid, args, context) {
-  const money = pesosToCentavos(args.total_amount);
-  if (money.error) return { error: money.error };
-  if (!Array.isArray(args.participants) || args.participants.length > 100) {
+async function toolSplitBill(uidNya, argsNya, contextNya) {
+  const peraSent = pesosToCentavos(argsNya.total_amount);
+  if (peraSent.error) return { error: peraSent.error };
+  if (!Array.isArray(argsNya.participants) || argsNya.participants.length > 100) {
     return { error: "participants must be a list of the other people's names (not including the user)." };
   }
-  const when = readDate(args.date);
-  if (when.error) return when;
+  const kailan = readDate(argsNya.date);
+  if (kailan.error) return kailan;
 
-  const result = splitBill({
-    totalCentavos: money.centavos,
-    friends: args.participants,
-    paidBy: args.paid_by,
+  const splitResult = splitBill({
+    totalCentavos: peraSent.centavos,
+    friends: argsNya.participants,
+    paidBy: argsNya.paid_by,
   });
-  if (result.error) return { error: result.error };
+  if (splitResult.error) return { error: splitResult.error };
 
-  const resolve = makeNameResolver(context.knownFriends);
-  const base = shortNote(args.note).slice(0, 100) || "Split bill";
-  const note =
-    base + " (" + formatCentavos(result.totalCentavos) + " split " + result.headcount + " ways)";
+  const ayusinPangalan = makeNameResolver(contextNya.knownFriends);
+  const noteBase = shortNote(argsNya.note).slice(0, 100) || "Split bill";
+  const noteNya =
+    noteBase + " (" + formatCentavos(splitResult.totalCentavos) + " split " + splitResult.headcount + " ways)";
   await addLedgerEntries(
-    uid,
-    result.entries.map((e) => ({
-      friendName: resolve(e.friendName),
-      type: e.type,
-      amountCentavos: e.amountCentavos,
-      note,
-      date: when.date,
+    uidNya,
+    splitResult.entries.map((isaEntry) => ({
+      friendName: ayusinPangalan(isaEntry.friendName),
+      type: isaEntry.type,
+      amountCentavos: isaEntry.amountCentavos,
+      note: noteNya,
+      date: kailan.date,
     }))
   );
 
-  // Names of the friends in this split, for the confirmation message
-  const names = [];
-  const seen = new Set();
-  for (const raw of args.participants) {
-    const cleaned = cleanName(raw);
-    if (cleaned.error || seen.has(cleaned.key)) continue;
-    seen.add(cleaned.key);
-    names.push(resolve(cleaned.name));
+  const pangalanArr = [];
+  const nakitaNa = new Set();
+  for (const hilawPangalan of argsNya.participants) {
+    const linis = cleanName(hilawPangalan);
+    if (linis.error || nakitaNa.has(linis.key)) continue;
+    nakitaNa.add(linis.key);
+    pangalanArr.push(ayusinPangalan(linis.name));
   }
-  const everyone = joinNames(["you", ...names]);
-  const share = formatCentavos(result.shareCentavos);
-  const head = "Split " + formatCentavos(result.totalCentavos) + " between " + everyone + ": " + share + " each. ";
+  const lahatSila = joinNames(["you", ...pangalanArr]);
+  const shareTxt = formatCentavos(splitResult.shareCentavos);
+  const unahan = "Split " + formatCentavos(splitResult.totalCentavos) + " between " + lahatSila + ": " + shareTxt + " each. ";
 
-  if (result.payer === "me") {
-    const extra =
-      result.remainderCentavos > 0 ? " You cover the extra " + formatCentavos(result.remainderCentavos) + "." : "";
-    const owe = names.length === 1 ? names[0] + " owes you " : joinNames(names) + " each owe you ";
-    return { success: true, message: head + owe + share + "." + extra };
+  if (splitResult.payer === "me") {
+    const extraTxt =
+      splitResult.remainderCentavos > 0 ? " You cover the extra " + formatCentavos(splitResult.remainderCentavos) + "." : "";
+    const utangSila = pangalanArr.length === 1 ? pangalanArr[0] + " owes you " : joinNames(pangalanArr) + " each owe you ";
+    return { success: true, message: unahan + utangSila + shareTxt + "." + extraTxt };
   }
-  const payer = resolve(result.payer);
-  return { success: true, message: head + payer + " paid, so you owe " + payer + " " + share + "." };
+  const nagbayad = ayusinPangalan(splitResult.payer);
+  return { success: true, message: unahan + nagbayad + " paid, so you owe " + nagbayad + " " + shareTxt + "." };
 }
 
-async function toolGetBalances(uid, args) {
-  const entries = await getLedgerFresh(uid);
-  const balances = computeBalances(entries);
-  const describe = (f) => ({
-    name: f.friendName,
-    status: f.balanceCentavos > 0 ? "owes_you" : f.balanceCentavos < 0 ? "you_owe" : "settled",
-    amount: formatCentavos(Math.abs(f.balanceCentavos)),
+async function toolGetBalances(uidNya, argsNya) {
+  const listahanEntry = await getLedgerFresh(uidNya);
+  const balancesNya = computeBalances(listahanEntry);
+  const describeFn = (isaFriend) => ({
+    name: isaFriend.friendName,
+    status: isaFriend.balanceCentavos > 0 ? "owes_you" : isaFriend.balanceCentavos < 0 ? "you_owe" : "settled",
+    amount: formatCentavos(Math.abs(isaFriend.balanceCentavos)),
   });
 
-  const wanted = args.friend_name;
-  if (wanted !== undefined && wanted !== null && String(wanted).trim() !== "") {
-    const name = cleanName(wanted);
-    if (name.error) return { error: name.error };
-    const found = balances.friends.find((f) => f.friendKey === name.key);
-    if (!found) {
+  const gustoPangalan = argsNya.friend_name;
+  if (gustoPangalan !== undefined && gustoPangalan !== null && String(gustoPangalan).trim() !== "") {
+    const pangalan = cleanName(gustoPangalan);
+    if (pangalan.error) return { error: pangalan.error };
+    const nahanap = balancesNya.friends.find((isaFriend) => isaFriend.friendKey === pangalan.key);
+    if (!nahanap) {
       return {
-        friend: name.name,
+        friend: pangalan.name,
         status: "no_utang_recorded",
-        known_friends: balances.friends.slice(0, 50).map((f) => f.friendName),
+        known_friends: balancesNya.friends.slice(0, 50).map((isaFriend) => isaFriend.friendName),
       };
     }
     return {
-      ...describe(found),
-      recent_entries: entries
-        .filter((e) => e.friendKey === name.key)
+      ...describeFn(nahanap),
+      recent_entries: listahanEntry
+        .filter((isaEntry) => isaEntry.friendKey === pangalan.key)
         .slice(0, 10)
-        .map((e) => ({
-          date: e.date,
-          kind: TYPE_LABELS[e.type] || e.type,
-          amount: formatCentavos(Math.round(e.amount * 100)),
-          note: e.note,
+        .map((isaEntry) => ({
+          date: isaEntry.date,
+          kind: tipoLabel[isaEntry.type] || isaEntry.type,
+          amount: formatCentavos(Math.round(isaEntry.amount * 100)),
+          note: isaEntry.note,
         })),
     };
   }
 
   return {
-    owed_to_you_total: formatCentavos(balances.owedToYou),
-    you_owe_total: formatCentavos(balances.youOwe),
-    friend_count: balances.friends.length,
-    friends: balances.friends.slice(0, 50).map(describe),
+    owed_to_you_total: formatCentavos(balancesNya.owedToYou),
+    you_owe_total: formatCentavos(balancesNya.youOwe),
+    friend_count: balancesNya.friends.length,
+    friends: balancesNya.friends.slice(0, 50).map(describeFn),
   };
 }
 
-// context: { knownFriends: [names already on the panel] }
-export async function runTool(uid, name, args, context = {}) {
-  console.info("AI requested function:", name, args);
+export async function runTool(uidNya, pangalanFn, argsNya, contextNya = {}) {
+  console.info("AI requested function:", pangalanFn, argsNya);
   try {
-    if (name === "add_expense") return await toolAddExpense(uid, args);
-    if (name === "get_spending_summary") return await toolGetSummary(uid, args);
-    if (name === "record_utang") return await toolRecordUtang(uid, args, context);
-    if (name === "record_repayment") return await toolRecordRepayment(uid, args, context);
-    if (name === "split_bill") return await toolSplitBill(uid, args, context);
-    if (name === "get_balances") return await toolGetBalances(uid, args);
-    return { error: "Unknown function: " + name };
-  } catch (error) {
-    console.error("Function failed:", name, error);
+    if (pangalanFn === "add_expense") return await toolAddExpense(uidNya, argsNya);
+    if (pangalanFn === "get_spending_summary") return await toolGetSummary(uidNya, argsNya);
+    if (pangalanFn === "record_utang") return await toolRecordUtang(uidNya, argsNya, contextNya);
+    if (pangalanFn === "record_repayment") return await toolRecordRepayment(uidNya, argsNya, contextNya);
+    if (pangalanFn === "split_bill") return await toolSplitBill(uidNya, argsNya, contextNya);
+    if (pangalanFn === "get_balances") return await toolGetBalances(uidNya, argsNya);
+    return { error: "Unknown function: " + pangalanFn };
+  } catch (siraFn) {
+    console.error("Function failed:", pangalanFn, siraFn);
     return { error: "The app could not complete this action. Please try again." };
   }
 }

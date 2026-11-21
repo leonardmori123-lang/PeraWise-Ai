@@ -1,61 +1,61 @@
 import { runAgent } from "./ai-agent.js";
 
-const MAX_HISTORY_MESSAGES = 8; // remembers the last 4 exchanges
-const GREETING =
+const MAX_CHAT_LINES = 8;
+const unangSabi =
   'Hi! Tell me what you spent, like "spent 150 on lunch". I also track utang: try "Ana owes me 200" or "I paid 900, split with Ben and Cris".';
 
-export function initChat(getUser, getFriends = () => []) {
-  const form = document.getElementById("chat-form");
-  const input = document.getElementById("chat-input");
+export function initChat(kuninUser, kuninFriends = () => []) {
+  const formUsap = document.getElementById("chat-form");
+  const typeBox = document.getElementById("chat-input");
   const sendBtn = document.getElementById("chat-send");
-  const log = document.getElementById("chat-log");
+  const logBox = document.getElementById("chat-log");
 
-  let history = [];
-  let busy = false;
+  let chatHist = [];
+  let busyNa = false;
 
-  function addBubble(text, classes) {
-    const div = document.createElement("div");
-    div.className = "bubble " + classes;
-    div.textContent = text; // textContent keeps injected HTML from running
-    log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
-    return div;
+  function dagdagBubble(sulat, klaseNya) {
+    const bubbleDiv = document.createElement("div");
+    bubbleDiv.className = "bubble " + klaseNya;
+    bubbleDiv.textContent = sulat;
+    logBox.appendChild(bubbleDiv);
+    logBox.scrollTop = logBox.scrollHeight;
+    return bubbleDiv;
   }
 
   function reset() {
-    history = [];
-    log.replaceChildren();
-    addBubble(GREETING, "bot");
+    chatHist = [];
+    logBox.replaceChildren();
+    dagdagBubble(unangSabi, "bot");
   }
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    const user = getUser();
-    if (!text || busy || !user) return;
+  formUsap.addEventListener("submit", async (submitEvt) => {
+    submitEvt.preventDefault();
+    const sulatUser = typeBox.value.trim();
+    const sinoUser = kuninUser();
+    if (!sulatUser || busyNa || !sinoUser) return;
 
-    busy = true;
+    busyNa = true;
     sendBtn.disabled = true;
-    input.value = "";
-    addBubble(text, "user");
-    const bubble = addBubble("Thinking...", "bot thinking");
+    typeBox.value = "";
+    dagdagBubble(sulatUser, "user");
+    const waitBubble = dagdagBubble("Thinking...", "bot thinking");
 
     try {
-      const reply = await runAgent({ uid: user.uid, text, history, friends: getFriends() });
-      bubble.textContent = reply;
-      history.push(
-        { role: "user", parts: [{ text }] },
-        { role: "model", parts: [{ text: reply }] }
+      const sagotAi = await runAgent({ uid: sinoUser.uid, text: sulatUser, history: chatHist, friends: kuninFriends() });
+      waitBubble.textContent = sagotAi;
+      chatHist.push(
+        { role: "user", parts: [{ text: sulatUser }] },
+        { role: "model", parts: [{ text: sagotAi }] }
       );
-      history = history.slice(-MAX_HISTORY_MESSAGES);
-    } catch (error) {
-      console.error(error);
-      bubble.textContent = "Sorry, I couldn't reach the AI right now. Please try again in a moment.";
+      chatHist = chatHist.slice(-MAX_CHAT_LINES);
+    } catch (siraChat) {
+      console.error(siraChat);
+      waitBubble.textContent = "Sorry, I couldn't reach the AI right now. Please try again in a moment.";
     } finally {
-      bubble.classList.remove("thinking");
-      busy = false;
+      waitBubble.classList.remove("thinking");
+      busyNa = false;
       sendBtn.disabled = false;
-      input.focus();
+      typeBox.focus();
     }
   });
 

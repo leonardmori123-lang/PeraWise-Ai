@@ -7,26 +7,27 @@ import {
 } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
 import { auth } from "./firebase-config.js";
 
-export async function signUp(name, email, password) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  if (name) await updateProfile(cred.user, { displayName: name });
-  return cred.user;
+export async function signUp(pangalan, sulatEmail, passWord) {
+  const bagongAcc = await createUserWithEmailAndPassword(auth, sulatEmail, passWord);
+  if (pangalan) await updateProfile(bagongAcc.user, { displayName: pangalan });
+  return bagongAcc.user;
 }
 
-export function logIn(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
+export function logIn(sulatEmail, passWord) {
+  return signInWithEmailAndPassword(auth, sulatEmail, passWord);
 }
 
 export function logOut() {
   return signOut(auth);
 }
 
-export function watchAuth(callback) {
-  return onAuthStateChanged(auth, callback);
+export function watchAuth(kapagMayUser) {
+  return onAuthStateChanged(auth, kapagMayUser);
 }
 
-export function friendlyError(error) {
-  switch (error.code) {
+export function friendlyError(problema) {
+  const kodigo = problema.code;
+  switch (kodigo) {
     case "auth/invalid-email":
       return "Please enter a valid email address.";
     case "auth/email-already-in-use":

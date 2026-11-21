@@ -9,12 +9,6 @@
   <link rel="stylesheet" href="../public/css/ledger.css">
 </head>
 <body>
-  <!--
-    DEV PREVIEW ONLY. This page uses fake data and is NOT deployed (it lives outside public/).
-    Leonard's JavaScript will later build this exact HTML structure from real data,
-    so keep the class names and the nesting exactly as they are.
-    Friend row states: positive | negative | settled
-  -->
   <main class="container">
     <section class="card wide">
 
@@ -32,12 +26,10 @@
           </div>
         </div>
 
-        <!-- Shown by the JavaScript only when there are no entries at all -->
         <p class="muted ledger-empty" hidden>No utang yet.</p>
 
         <ul class="friend-list">
 
-          <!-- Friend 1: owes you (history open) -->
           <li class="friend positive">
             <button type="button" class="friend-row" aria-expanded="true">
               <span class="friend-name">Ana</span>
@@ -63,7 +55,6 @@
             </ul>
           </li>
 
-          <!-- Friend 2: owes you (history closed) -->
           <li class="friend positive">
             <button type="button" class="friend-row" aria-expanded="false">
               <span class="friend-name">Cris</span>
@@ -81,7 +72,6 @@
             </ul>
           </li>
 
-          <!-- Friend 3: you owe them -->
           <li class="friend negative">
             <button type="button" class="friend-row" aria-expanded="false">
               <span class="friend-name">Ben</span>
@@ -99,7 +89,6 @@
             </ul>
           </li>
 
-          <!-- Friend 4: settled (balance is zero) -->
           <li class="friend settled">
             <button type="button" class="friend-row" aria-expanded="false">
               <span class="friend-name">Dan</span>
@@ -131,14 +120,13 @@
     </section>
   </main>
 
-  <!-- Preview-only toggle so you can test open/close while styling. Leonard's real code replaces this. -->
   <script>
-    document.querySelectorAll(".friend-row").forEach((row) => {
-      row.addEventListener("click", () => {
-        const history = row.nextElementSibling;
-        const open = row.getAttribute("aria-expanded") === "true";
-        row.setAttribute("aria-expanded", String(!open));
-        history.hidden = open;
+    document.querySelectorAll(".friend-row").forEach((rowBtn) => {
+      rowBtn.addEventListener("click", () => {
+        const historyUl = rowBtn.nextElementSibling;
+        const nakaBukas = rowBtn.getAttribute("aria-expanded") === "true";
+        rowBtn.setAttribute("aria-expanded", String(!nakaBukas));
+        historyUl.hidden = nakaBukas;
       });
     });
   </script>
