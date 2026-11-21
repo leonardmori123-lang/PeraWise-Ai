@@ -29,7 +29,7 @@ const ENGLISH_WORDS = new Set((
   "of for with from and or but in on who whom what when where why which how much many did does do " +
   "owe owes owed paid pay paying spent spend spending borrowed borrow lent lend back split each all " +
   "today yesterday tomorrow week month last this that these those there here please thanks thank " +
-  "need want should can have has had delete remove record show list not dont didnt isnt"
+  "need want should can have has had delete remove record show list not dont didnt isnt yes yeah yep yup"
 ).split(" "));
 
 export function detectEnglish(text) {
@@ -41,11 +41,32 @@ export function detectEnglish(text) {
   return words.some((w) => ENGLISH_WORDS.has(w));
 }
 
-function languageRule(userText) {
-  if (detectEnglish(userText)) {
+// The newest message the user sent earlier in this chat (history comes from chat.js)
+function lastUserText(history) {
+  for (let i = (Array.isArray(history) ? history.length : 0) - 1; i >= 0; i--) {
+    const item = history[i];
+    const part = item && item.role === "user" && Array.isArray(item.parts) ? item.parts[0] : null;
+    if (part && typeof part.text === "string") return part.text;
+  }
+  return "";
+}
+
+function wordCount(text) {
+  return (String(text || "").match(/[\p{L}\p{N}]+/gu) || []).length;
+}
+
+// A very short message ("ok", "go ahead") has no language signal of its own.
+// If the user's previous message was English, the conversation is English, so we keep it English.
+function isEnglishConversation(userText, history) {
+  if (detectEnglish(userText)) return true;
+  return wordCount(userText) <= 2 && detectEnglish(lastUserText(history));
+}
+
+function languageRule(userText, history) {
+  if (isEnglishConversation(userText, history)) {
     return "Reply language for THIS message: English. Reply in English, even if earlier messages or the friend names are Filipino.";
   }
-  return "Reply language for THIS message: the message has no clear English. Reply in Tagalog if it has any Tagalog words. Reply in Bisaya (Cebuano) only if it is Bisaya with no Tagalog. If you are not sure, reply in English.";
+  return "Reply language for THIS message: the message has no clear English. Reply in Tagalog if it has any Tagalog words. Reply in Bisaya (Cebuano) only if it is Bisaya with no Tagalog. If the message is very short or you are not sure, reply in the language of your previous reply in this chat (English if there is none).";
 }
 
 // The friend names already on the user's list, as a labelled JSON data block.
@@ -65,13 +86,13 @@ function buildFriendsBlock(friends) {
 }
 
 // ---------- Instructions that keep the AI on topic ----------
-function buildSystemInstruction(friends, userText) {
+function buildSystemInstruction(friends, userText, history) {
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   return [
     "You are PeraWise, a friendly personal-finance assistant inside an expense and utang tracking web app for students and young professionals in the Philippines. PeraWise is the app itself, not a person: utang is only ever between the user and the user's friends, so never say that someone owes PeraWise.",
     "Today is " + weekday + ", " + todayString() + ". Weeks run Monday to Sunday. The currency is Philippine pesos (PHP).",
     "The user may write in English, Filipino (Tagalog), Taglish or Bisaya (Cebuano). Understand the meaning in any of them.",
-    languageRule(userText),
+    languageRule(userText, history),
     "Rules:",
     "- When the user says they spent money on something for themselves, call add_expense. If the amount is missing or unclear, ask a short question instead of guessing. If several expenses are mentioned, call add_expense once for each.",
     "- When the user asks how much they spent, call get_spending_summary with the correct dates, worked out from today's date, and answer using only the returned numbers. Never invent amounts.",
@@ -156,7 +177,7 @@ export async function runAgent({ uid, text, history = [], friends = [] }) {
       const model = getGenerativeModel(ai, {
         model: name,
         tools: TOOLS,
-        systemInstruction: buildSystemInstruction(friends, text),
+        systemInstruction: buildSystemInstruction(friends, text, history),
       });
       const chat = model.startChat({ history });
       const turn = { called: 0 }; // how many functions the AI called for this message
