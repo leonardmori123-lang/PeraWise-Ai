@@ -67,3 +67,6 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Real Firebase settings stay on this computer. Use firebase-config.example.js as the template.
+public/js/firebase-config.js
