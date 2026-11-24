@@ -1,143 +1,143 @@
 import { deleteLedgerEntry } from "./ledger.js";
-import { computeBalances, formatCentavos } from "./ledger-math.js";
+import { computeBalances, formatCents } from "./ledger-math.js";
 
 console.info("ledger-ui.js loaded");
 
-const tipoLabel = {
+const TYPE_LABELS = {
   lent: "Lent",
   borrowed: "Borrowed",
   they_paid: "Paid you back",
   i_paid: "You paid back",
 };
 
-function balasahin(sentimoVal) {
-  if (sentimoVal > 0) return "Owes you " + formatCentavos(sentimoVal);
-  if (sentimoVal < 0) return "You owe " + formatCentavos(-sentimoVal);
+function formatBalanceStatus(cents) {
+  if (cents > 0) return "Owes you " + formatCents(cents);
+  if (cents < 0) return "You owe " + formatCents(-cents);
   return "Settled";
 }
 
-export function initLedgerPanel(kuninUser) {
+export function initLedgerPanel(getUser) {
   const owedBox = document.getElementById("ledger-owed");
   const oweBox = document.getElementById("ledger-owe");
   const emptyBox = document.getElementById("ledger-empty");
   const listBox = document.getElementById("friend-list");
   const msgBox = document.getElementById("ledger-message");
 
-  const bukasSet = new Set();
-  let pangalanList = [];
+  const expandedFriendKeys = new Set();
+  let friendNamesList = [];
 
-  async function burahinEntry(isaEntry, btnNya) {
-    const sinoUser = kuninUser();
-    if (!sinoUser) return;
+  async function handleDeleteEntry(entry, deleteBtn) {
+    const user = getUser();
+    if (!user) return;
     if (!window.confirm("Delete this entry? The balance will change.")) return;
     msgBox.textContent = "";
-    btnNya.disabled = true;
+    deleteBtn.disabled = true;
     try {
-      await deleteLedgerEntry(sinoUser.uid, isaEntry.id);
-    } catch (siraDel) {
-      console.error("Could not delete the ledger entry:", siraDel);
+      await deleteLedgerEntry(user.uid, entry.id);
+    } catch (error) {
+      console.error("Could not delete the ledger entry:", error);
       msgBox.textContent = "Could not delete the entry. Please try again.";
-      btnNya.disabled = false;
+      deleteBtn.disabled = false;
     }
   }
 
-  function gawaEntryLi(isaEntry) {
-    const rowLi = document.createElement("li");
-    rowLi.className = "entry";
+  function createEntryListItem(entry) {
+    const listItem = document.createElement("li");
+    listItem.className = "entry";
 
-    const tipoTxt = tipoLabel[isaEntry.type] || isaEntry.type;
-    const pamagat = document.createElement("strong");
-    const detalye = document.createElement("span");
-    detalye.className = "muted";
-    if (isaEntry.note) {
-      pamagat.textContent = isaEntry.note;
-      detalye.textContent = tipoTxt + " - " + isaEntry.date;
+    const typeText = TYPE_LABELS[entry.type] || entry.type;
+    const title = document.createElement("strong");
+    const details = document.createElement("span");
+    details.className = "muted";
+    if (entry.note) {
+      title.textContent = entry.note;
+      details.textContent = typeText + " - " + entry.date;
     } else {
-      pamagat.textContent = tipoTxt;
-      detalye.textContent = isaEntry.date;
+      title.textContent = typeText;
+      details.textContent = entry.date;
     }
     const infoBox = document.createElement("div");
     infoBox.className = "entry-info";
-    infoBox.append(pamagat, detalye);
+    infoBox.append(title, details);
 
-    const pesoBox = document.createElement("span");
-    pesoBox.className = "entry-amount";
-    pesoBox.textContent = formatCentavos(Math.round(isaEntry.amount * 100));
+    const amountDisplay = document.createElement("span");
+    amountDisplay.className = "entry-amount";
+    amountDisplay.textContent = formatCents(Math.round(entry.amount * 100));
 
-    const burahinBtn = document.createElement("button");
-    burahinBtn.type = "button";
-    burahinBtn.className = "delete";
-    burahinBtn.textContent = "Delete";
-    burahinBtn.addEventListener("click", () => burahinEntry(isaEntry, burahinBtn));
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "delete";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", () => handleDeleteEntry(entry, deleteBtn));
 
-    rowLi.append(infoBox, pesoBox, burahinBtn);
-    return rowLi;
+    listItem.append(infoBox, amountDisplay, deleteBtn);
+    return listItem;
   }
 
-  function gawaFriendLi(isaFriend, mgaEntry) {
-    const rowLi = document.createElement("li");
-    const estadoNya = isaFriend.balanceCentavos > 0 ? "positive" : isaFriend.balanceCentavos < 0 ? "negative" : "settled";
-    rowLi.className = "friend " + estadoNya;
-    rowLi.dataset.key = isaFriend.friendKey;
+  function createFriendListItem(friend, entries) {
+    const listItem = document.createElement("li");
+    const statusClass = friend.balanceCents > 0 ? "positive" : friend.balanceCents < 0 ? "negative" : "settled";
+    listItem.className = "friend " + statusClass;
+    listItem.dataset.key = friend.friendKey;
 
-    const nakaBukas = bukasSet.has(isaFriend.friendKey);
+    const isExpanded = expandedFriendKeys.has(friend.friendKey);
 
-    const pangalanSpan = document.createElement("span");
-    pangalanSpan.className = "friend-name";
-    pangalanSpan.textContent = isaFriend.friendName;
-    const balSpan = document.createElement("span");
-    balSpan.className = "friend-balance";
-    balSpan.textContent = balasahin(isaFriend.balanceCentavos);
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "friend-name";
+    nameSpan.textContent = friend.friendName;
+    const balanceSpan = document.createElement("span");
+    balanceSpan.className = "friend-balance";
+    balanceSpan.textContent = formatBalanceStatus(friend.balanceCents);
 
     const rowBtn = document.createElement("button");
     rowBtn.type = "button";
     rowBtn.className = "friend-row";
-    rowBtn.setAttribute("aria-expanded", String(nakaBukas));
-    rowBtn.append(pangalanSpan, balSpan);
+    rowBtn.setAttribute("aria-expanded", String(isExpanded));
+    rowBtn.append(nameSpan, balanceSpan);
 
-    const historyUl = document.createElement("ul");
-    historyUl.className = "history";
-    historyUl.hidden = !nakaBukas;
-    mgaEntry.forEach((isaEntry) => historyUl.appendChild(gawaEntryLi(isaEntry)));
+    const historyList = document.createElement("ul");
+    historyList.className = "history";
+    historyList.hidden = !isExpanded;
+    entries.forEach((entry) => historyList.appendChild(createEntryListItem(entry)));
 
     rowBtn.addEventListener("click", () => {
-      const buksanNa = rowBtn.getAttribute("aria-expanded") !== "true";
-      rowBtn.setAttribute("aria-expanded", String(buksanNa));
-      historyUl.hidden = !buksanNa;
-      if (buksanNa) bukasSet.add(isaFriend.friendKey);
-      else bukasSet.delete(isaFriend.friendKey);
+      const willExpand = rowBtn.getAttribute("aria-expanded") !== "true";
+      rowBtn.setAttribute("aria-expanded", String(willExpand));
+      historyList.hidden = !willExpand;
+      if (willExpand) expandedFriendKeys.add(friend.friendKey);
+      else expandedFriendKeys.delete(friend.friendKey);
     });
 
-    rowLi.append(rowBtn, historyUl);
-    return rowLi;
+    listItem.append(rowBtn, historyList);
+    return listItem;
   }
 
-  function render(listahanEntry) {
-    const nakaFocus = document.activeElement;
-    const friendFocus = nakaFocus && nakaFocus.closest ? nakaFocus.closest(".friend") : null;
-    const susiFocus = friendFocus ? friendFocus.dataset.key : null;
+  function render(entries) {
+    const activeElement = document.activeElement;
+    const activeFriendRow = activeElement && activeElement.closest ? activeElement.closest(".friend") : null;
+    const focusedKey = activeFriendRow ? activeFriendRow.dataset.key : null;
 
-    const { friends, owedToYou, youOwe } = computeBalances(listahanEntry);
-    pangalanList = friends.map((isaFriend) => isaFriend.friendName);
-    owedBox.textContent = formatCentavos(owedToYou);
-    oweBox.textContent = formatCentavos(youOwe);
+    const { friends, owedToYou, youOwe } = computeBalances(entries);
+    friendNamesList = friends.map((friend) => friend.friendName);
+    owedBox.textContent = formatCents(owedToYou);
+    oweBox.textContent = formatCents(youOwe);
     emptyBox.hidden = friends.length > 0;
 
-    const perSusi = new Map();
-    for (const isaEntry of listahanEntry) {
-      if (!perSusi.has(isaEntry.friendKey)) perSusi.set(isaEntry.friendKey, []);
-      perSusi.get(isaEntry.friendKey).push(isaEntry);
+    const entriesByKey = new Map();
+    for (const entry of entries) {
+      if (!entriesByKey.has(entry.friendKey)) entriesByKey.set(entry.friendKey, []);
+      entriesByKey.get(entry.friendKey).push(entry);
     }
 
-    listBox.replaceChildren(...friends.map((isaFriend) => gawaFriendLi(isaFriend, perSusi.get(isaFriend.friendKey) || [])));
+    listBox.replaceChildren(...friends.map((friend) => createFriendListItem(friend, entriesByKey.get(friend.friendKey) || [])));
 
-    for (const susiNya of [...bukasSet]) {
-      if (!perSusi.has(susiNya)) bukasSet.delete(susiNya);
+    for (const key of [...expandedFriendKeys]) {
+      if (!entriesByKey.has(key)) expandedFriendKeys.delete(key);
     }
-    if (susiFocus !== null) {
-      for (const rowLi of listBox.children) {
-        if (rowLi.dataset.key === susiFocus) {
-          const rowBtn = rowLi.querySelector(".friend-row");
+    if (focusedKey !== null) {
+      for (const listItem of listBox.children) {
+        if (listItem.dataset.key === focusedKey) {
+          const rowBtn = listItem.querySelector(".friend-row");
           if (rowBtn) rowBtn.focus();
         }
       }
@@ -145,10 +145,10 @@ export function initLedgerPanel(kuninUser) {
   }
 
   function clear() {
-    bukasSet.clear();
+    expandedFriendKeys.clear();
     msgBox.textContent = "";
     render([]);
   }
 
-  return { render, clear, getFriendNames: () => pangalanList.slice() };
+  return { render, clear, getFriendNames: () => friendNamesList.slice() };
 }

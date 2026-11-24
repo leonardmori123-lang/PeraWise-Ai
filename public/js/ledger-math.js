@@ -1,276 +1,281 @@
 console.info("ledger-math.js loaded");
 
 export const ENTRY_TYPES = ["lent", "borrowed", "they_paid", "i_paid"];
-const tandaBal = { lent: 1, borrowed: -1, they_paid: -1, i_paid: 1 };
+const BALANCE_SIGNS = { lent: 1, borrowed: -1, they_paid: -1, i_paid: 1 };
 
 export const MAX_NAME_LENGTH = 40;
 export const MAX_FRIENDS_PER_SPLIT = 20;
-export const MAX_AMOUNT_CENTAVOS = 999999999;
+export const MAX_AMOUNT_CENTS = 999999999;
 
-const akoWords = ["me", "i", "myself", "ako"];
+const SELF_WORDS = ["me", "i", "myself", "ako"];
 
-export function pesosToCentavos(pesoVal) {
-  const pwedeNum =
-    typeof pesoVal === "number" || (typeof pesoVal === "string" && pesoVal.trim() !== "");
-  const nHalaga = pwedeNum ? Number(pesoVal) : NaN;
-  if (!Number.isFinite(nHalaga) || nHalaga <= 0) {
+export function pesosToCents(pesoValue) {
+  const isValidInput =
+    typeof pesoValue === "number" || (typeof pesoValue === "string" && pesoValue.trim() !== "");
+  const amount = isValidInput ? Number(pesoValue) : NaN;
+  if (!Number.isFinite(amount) || amount <= 0) {
     return { error: "The amount must be a number greater than 0." };
   }
-  const sentimoVal = Math.round(nHalaga * 100);
-  if (sentimoVal < 1) return { error: "The amount is too small." };
-  if (sentimoVal > MAX_AMOUNT_CENTAVOS) return { error: "The amount is too large." };
-  return { centavos: sentimoVal };
+  const cents = Math.round(amount * 100);
+  if (cents < 1) return { error: "The amount is too small." };
+  if (cents > MAX_AMOUNT_CENTS) return { error: "The amount is too large." };
+  return { cents };
 }
 
-export function centavosToPesos(sentimoVal) {
-  return Math.round(sentimoVal) / 100;
+export function centsToPesos(cents) {
+  return Math.round(cents) / 100;
 }
 
-export function formatCentavos(sentimoVal) {
-  const tandaNeg = sentimoVal < 0 ? "-" : "";
-  const absSent = Math.abs(Math.round(sentimoVal));
-  const pisoStr = String(Math.floor(absSent / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  const centsStr = String(absSent % 100).padStart(2, "0");
-  return tandaNeg + "₱" + pisoStr + "." + centsStr;
+export function formatCents(cents) {
+  const sign = cents < 0 ? "-" : "";
+  const absCents = Math.abs(Math.round(cents));
+  const pesosStr = String(Math.floor(absCents / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const centsStr = String(absCents % 100).padStart(2, "0");
+  return sign + "₱" + pesosStr + "." + centsStr;
 }
 
-export function cleanName(hilawPangalan) {
-  if (typeof hilawPangalan !== "string") return { error: "A friend's name is needed." };
+export function cleanName(rawName) {
+  if (typeof rawName !== "string") return { error: "A friend's name is needed." };
 
-  const linisPangalan = hilawPangalan
+  const normalizedName = rawName
     .normalize("NFC")
     .replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, " ")
     .replace(/\p{Cf}/gu, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  if (!linisPangalan) return { error: "A friend's name is needed." };
-  if (!/[\p{L}\p{N}]/u.test(linisPangalan)) {
+  if (!normalizedName) return { error: "A friend's name is needed." };
+  if (!/[\p{L}\p{N}]/u.test(normalizedName)) {
     return { error: "A friend's name needs at least one letter or number." };
   }
 
-  const susiPangalan = linisPangalan.toLowerCase();
-  if (akoWords.includes(susiPangalan)) {
+  const nameKey = normalizedName.toLowerCase();
+  if (SELF_WORDS.includes(nameKey)) {
     return { error: "That word means the user, not a friend. Use the friend's real name.", self: true };
   }
-  if (linisPangalan.length > MAX_NAME_LENGTH || susiPangalan.length > MAX_NAME_LENGTH) {
+  if (normalizedName.length > MAX_NAME_LENGTH || nameKey.length > MAX_NAME_LENGTH) {
     return { error: "A friend's name can be at most " + MAX_NAME_LENGTH + " characters." };
   }
-  return { name: linisPangalan, key: susiPangalan };
+  return { name: normalizedName, key: nameKey };
 }
 
-function quoted(hilawPangalan) {
-  return JSON.stringify(String(hilawPangalan).slice(0, MAX_NAME_LENGTH));
+function quoted(rawName) {
+  return JSON.stringify(String(rawName).slice(0, MAX_NAME_LENGTH));
 }
 
-export function splitBill({ totalCentavos, friends, paidBy = "me" } = {}) {
+export function splitBill({ totalCents, friends, paidBy = "me" } = {}) {
   if (
-    !Number.isInteger(totalCentavos) ||
-    totalCentavos < 1 ||
-    totalCentavos > MAX_AMOUNT_CENTAVOS
+    !Number.isInteger(totalCents) ||
+    totalCents < 1 ||
+    totalCents > MAX_AMOUNT_CENTS
   ) {
-    return { error: "The total must be a whole number of centavos greater than 0." };
+    return { error: "The total must be a whole number of cents greater than 0." };
   }
   if (!Array.isArray(friends)) {
     return { error: "friends must be a list of names." };
   }
 
-  const taoMap = new Map();
-  for (const hilawPangalan of friends) {
-    const linis = cleanName(hilawPangalan);
-    if (linis.self) continue;
-    if (linis.error) return { error: "Problem with the friend " + quoted(hilawPangalan) + ": " + linis.error };
-    if (!taoMap.has(linis.key)) taoMap.set(linis.key, linis.name);
+  const friendsMap = new Map();
+  for (const rawName of friends) {
+    const parsedName = cleanName(rawName);
+    if (parsedName.self) continue;
+    if (parsedName.error) return { error: "Problem with the friend " + quoted(rawName) + ": " + parsedName.error };
+    if (!friendsMap.has(parsedName.key)) friendsMap.set(parsedName.key, parsedName.name);
   }
 
-  if (taoMap.size === 0) {
+  if (friendsMap.size === 0) {
     return {
       error:
         "Name at least one friend to split with. The user is included automatically, so do not list the user.",
     };
   }
-  if (taoMap.size > MAX_FRIENDS_PER_SPLIT) {
+  if (friendsMap.size > MAX_FRIENDS_PER_SPLIT) {
     return { error: "A bill can be split with at most " + MAX_FRIENDS_PER_SPLIT + " friends at a time." };
   }
 
-  let nagbayadKey = "me";
-  const meronPayer = paidBy !== undefined && paidBy !== null && String(paidBy).trim() !== "";
-  if (meronPayer) {
-    const nagbayad = cleanName(paidBy);
-    if (nagbayad.self) {
-      nagbayadKey = "me";
-    } else if (nagbayad.error) {
-      return { error: "Problem with who paid " + quoted(paidBy) + ": " + nagbayad.error };
-    } else if (!taoMap.has(nagbayad.key)) {
+  let payerKey = "me";
+  const hasPayer = paidBy !== undefined && paidBy !== null && String(paidBy).trim() !== "";
+  if (hasPayer) {
+    const payer = cleanName(paidBy);
+    if (payer.self) {
+      payerKey = "me";
+    } else if (payer.error) {
+      return { error: "Problem with who paid " + quoted(paidBy) + ": " + payer.error };
+    } else if (!friendsMap.has(payer.key)) {
       return {
         error:
-          nagbayad.name + " paid, so " + nagbayad.name + " must also be in participants. Call split_bill again with " +
-          nagbayad.name + " added to participants.",
+          payer.name + " paid, so " + payer.name + " must also be in participants. Call split_bill again with " +
+          payer.name + " added to participants.",
       };
     } else {
-      nagbayadKey = nagbayad.key;
+      payerKey = payer.key;
     }
   }
 
-  const bilangKaibigan = taoMap.size;
-  const bilangLahat = bilangKaibigan + 1;
-  const shareSent = Math.floor(totalCentavos / bilangLahat);
-  if (shareSent < 1) {
-    return { error: "That amount is too small to split between " + bilangLahat + " people." };
+  const friendCount = friendsMap.size;
+  const totalParticipants = friendCount + 1;
+  const shareCents = Math.floor(totalCents / totalParticipants);
+  if (shareCents < 1) {
+    return { error: "That amount is too small to split between " + totalParticipants + " people." };
   }
-  const leftoverSent = totalCentavos - shareSent * bilangLahat;
+  const remainderCents = totalCents - shareCents * totalParticipants;
 
-  const listahanEntry = [];
-  let akinShare;
-  let pangalanPayer = "me";
+  const entries = [];
+  let myShare;
+  let payerName = "me";
 
-  if (nagbayadKey === "me") {
-    for (const [susiPangalan, pangalanShow] of taoMap) {
-      listahanEntry.push({ friendName: pangalanShow, friendKey: susiPangalan, type: "lent", amountCentavos: shareSent });
+  if (payerKey === "me") {
+    for (const [friendKey, friendName] of friendsMap) {
+      entries.push({
+        friendName,
+        friendKey,
+        type: "lent",
+        amountCents: shareCents,
+      });
     }
-    akinShare = shareSent + leftoverSent;
+    myShare = shareCents + remainderCents;
   } else {
-    pangalanPayer = taoMap.get(nagbayadKey);
-    listahanEntry.push({
-      friendName: pangalanPayer,
-      friendKey: nagbayadKey,
+    payerName = friendsMap.get(payerKey);
+    entries.push({
+      friendName: payerName,
+      friendKey: payerKey,
       type: "borrowed",
-      amountCentavos: shareSent,
+      amountCents: shareCents,
     });
-    akinShare = shareSent;
+    myShare = shareCents;
   }
 
   return {
-    totalCentavos,
-    headcount: bilangLahat,
-    shareCentavos: shareSent,
-    myShareCentavos: akinShare,
-    remainderCentavos: leftoverSent,
-    payer: pangalanPayer,
-    entries: listahanEntry,
+    totalCents,
+    headcount: totalParticipants,
+    shareCents,
+    myShareCents: myShare,
+    remainderCents,
+    payer: payerName,
+    entries,
   };
 }
 
-export function computeBalances(listahanEntry) {
-  const perKaibigan = new Map();
-  let nilaktawan = 0;
+export function computeBalances(entries) {
+  const balancesByFriend = new Map();
+  let skippedCount = 0;
 
-  for (const isaEntry of Array.isArray(listahanEntry) ? listahanEntry : []) {
-    const tipoNya = isaEntry && isaEntry.type;
-    const susiNya = isaEntry && isaEntry.friendKey;
-    const sentimoVal = Math.round(Number(isaEntry && isaEntry.amount) * 100);
-    const okEntry =
-      typeof tipoNya === "string" &&
-      Object.hasOwn(tandaBal, tipoNya) &&
-      typeof susiNya === "string" &&
-      susiNya !== "" &&
-      Number.isInteger(sentimoVal) &&
-      sentimoVal > 0;
-    if (!okEntry) {
-      nilaktawan++;
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const entryType = entry && entry.type;
+    const friendKey = entry && entry.friendKey;
+    const cents = Math.round(Number(entry && entry.amount) * 100);
+    const isValidEntry =
+      typeof entryType === "string" &&
+      Object.hasOwn(BALANCE_SIGNS, entryType) &&
+      typeof friendKey === "string" &&
+      friendKey !== "" &&
+      Number.isInteger(cents) &&
+      cents > 0;
+    if (!isValidEntry) {
+      skippedCount++;
       continue;
     }
 
-    if (!perKaibigan.has(susiNya)) {
-      perKaibigan.set(susiNya, {
-        friendName: typeof isaEntry.friendName === "string" && isaEntry.friendName ? isaEntry.friendName : susiNya,
-        friendKey: susiNya,
-        balanceCentavos: 0,
+    if (!balancesByFriend.has(friendKey)) {
+      balancesByFriend.set(friendKey, {
+        friendName: typeof entry.friendName === "string" && entry.friendName ? entry.friendName : friendKey,
+        friendKey,
+        balanceCents: 0,
       });
     }
-    perKaibigan.get(susiNya).balanceCentavos += tandaBal[tipoNya] * sentimoVal;
+    balancesByFriend.get(friendKey).balanceCents += BALANCE_SIGNS[entryType] * cents;
   }
 
-  const listFriends = [...perKaibigan.values()].sort((una, sunod) => {
-    const unaZero = una.balanceCentavos === 0;
-    const sunodZero = sunod.balanceCentavos === 0;
-    if (unaZero !== sunodZero) return unaZero ? 1 : -1;
-    const masMalaki = Math.abs(sunod.balanceCentavos) - Math.abs(una.balanceCentavos);
-    return masMalaki !== 0 ? masMalaki : una.friendName.localeCompare(sunod.friendName);
+  const friendsList = [...balancesByFriend.values()].sort((a, b) => {
+    const aIsZero = a.balanceCents === 0;
+    const bIsZero = b.balanceCents === 0;
+    if (aIsZero !== bIsZero) return aIsZero ? 1 : -1;
+    const diff = Math.abs(b.balanceCents) - Math.abs(a.balanceCents);
+    return diff !== 0 ? diff : a.friendName.localeCompare(b.friendName);
   });
 
-  let utangSakin = 0;
-  let utangKo = 0;
-  for (const isaFriend of listFriends) {
-    if (isaFriend.balanceCentavos > 0) utangSakin += isaFriend.balanceCentavos;
-    if (isaFriend.balanceCentavos < 0) utangKo += -isaFriend.balanceCentavos;
+  let owedToYou = 0;
+  let youOwe = 0;
+  for (const friend of friendsList) {
+    if (friend.balanceCents > 0) owedToYou += friend.balanceCents;
+    if (friend.balanceCents < 0) youOwe += -friend.balanceCents;
   }
 
-  return { friends: listFriends, owedToYou: utangSakin, youOwe: utangKo, skipped: nilaktawan };
+  return { friends: friendsList, owedToYou, youOwe, skipped: skippedCount };
 }
 
-export function checkRepayment({ friendName, balanceCentavos, amountCentavos, direction }) {
-  const kulangHint = (kulangSent) =>
-    " The missing utang is " + formatCentavos(kulangSent) +
-    ". If it was never recorded, offer to record that amount as utang first.";
+export function checkRepayment({ friendName, balanceCents, amountCents, direction }) {
+  const missingHint = (missingCents) =>
+    " The missing debt is " + formatCents(missingCents) +
+    ". If it was never recorded, offer to record that amount as debt first.";
 
   if (direction !== "they_paid_me" && direction !== "i_paid_them") {
-    return { error: "direction must be they_paid_me or i_paid_them.", reason: "bad_direction", balanceCentavos };
+    return { error: "direction must be they_paid_me or i_paid_them.", reason: "bad_direction", balanceCents };
   }
-  if (!Number.isInteger(amountCentavos) || amountCentavos < 1) {
-    return { error: "The amount must be greater than 0.", reason: "bad_amount", balanceCentavos };
+  if (!Number.isInteger(amountCents) || amountCents < 1) {
+    return { error: "The amount must be greater than 0.", reason: "bad_amount", balanceCents };
   }
 
   if (direction === "they_paid_me") {
-    if (balanceCentavos === 0) {
+    if (balanceCents === 0) {
       return {
-        error: friendName + " does not owe the user anything right now." + kulangHint(amountCentavos),
+        error: friendName + " does not owe the user anything right now." + missingHint(amountCents),
         reason: "no_debt",
-        balanceCentavos,
-        missingCentavos: amountCentavos,
+        balanceCents,
+        missingCents: amountCents,
       };
     }
-    if (balanceCentavos < 0) {
+    if (balanceCents < 0) {
       return {
         error:
-          "The user owes " + friendName + " " + formatCentavos(-balanceCentavos) +
+          "The user owes " + friendName + " " + formatCents(-balanceCents) +
           ", so " + friendName + " has nothing to pay back. Ask if the user meant that they paid " + friendName + ".",
         reason: "wrong_way",
-        balanceCentavos,
+        balanceCents,
       };
     }
-    if (amountCentavos > balanceCentavos) {
-      const kulangSent = amountCentavos - balanceCentavos;
+    if (amountCents > balanceCents) {
+      const missingCents = amountCents - balanceCents;
       return {
         error:
-          friendName + " only owes the user " + formatCentavos(balanceCentavos) +
-          ", but the repayment is " + formatCentavos(amountCentavos) + "." + kulangHint(kulangSent),
+          friendName + " only owes the user " + formatCents(balanceCents) +
+          ", but the repayment is " + formatCents(amountCents) + "." + missingHint(missingCents),
         reason: "too_much",
-        balanceCentavos,
-        missingCentavos: kulangSent,
+        balanceCents,
+        missingCents,
       };
     }
-    return { ok: true, type: "they_paid", remainingCentavos: balanceCentavos - amountCentavos };
+    return { ok: true, type: "they_paid", remainingCents: balanceCents - amountCents };
   }
 
-  if (balanceCentavos === 0) {
+  if (balanceCents === 0) {
     return {
-      error: "The user does not owe " + friendName + " anything right now." + kulangHint(amountCentavos),
+      error: "The user does not owe " + friendName + " anything right now." + missingHint(amountCents),
       reason: "no_debt",
-      balanceCentavos,
-      missingCentavos: amountCentavos,
+      balanceCents,
+      missingCents: amountCents,
     };
   }
-  if (balanceCentavos > 0) {
+  if (balanceCents > 0) {
     return {
       error:
-        friendName + " owes the user " + formatCentavos(balanceCentavos) +
+        friendName + " owes the user " + formatCents(balanceCents) +
         ", so the user has nothing to pay back. Ask if the user meant that " + friendName + " paid them.",
       reason: "wrong_way",
-      balanceCentavos,
+      balanceCents,
     };
   }
-  const utangKo = -balanceCentavos;
-  if (amountCentavos > utangKo) {
-    const kulangSent = amountCentavos - utangKo;
+  const userDebt = -balanceCents;
+  if (amountCents > userDebt) {
+    const missingCents = amountCents - userDebt;
     return {
       error:
-        "The user only owes " + friendName + " " + formatCentavos(utangKo) +
-        ", but the repayment is " + formatCentavos(amountCentavos) + "." + kulangHint(kulangSent),
+        "The user only owes " + friendName + " " + formatCents(userDebt) +
+        ", but the repayment is " + formatCents(amountCents) + "." + missingHint(missingCents),
       reason: "too_much",
-      balanceCentavos,
-      missingCentavos: kulangSent,
+      balanceCents,
+      missingCents,
     };
   }
-  return { ok: true, type: "i_paid", remainingCentavos: balanceCentavos + amountCentavos };
+  return { ok: true, type: "i_paid", remainingCents: balanceCents + amountCents };
 }

@@ -1,49 +1,49 @@
 (async () => {
   const { auth, db } = await import("./js/firebase-config.js");
-  const ledgerMod = await import("./js/ledger.js");
-  const fireMod = await import("https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js");
+  const ledger = await import("./js/ledger.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js");
 
-  const sinoUser = auth.currentUser;
-  if (!sinoUser) {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
     console.log("Please log in first, then run this again.");
     return;
   }
-  const uidNya = sinoUser.uid;
-  const utangCol = fireMod.collection(db, "users", uidNya, "ledger");
-  const ginawaIds = [];
-  const resultaArr = [];
+  const uid = currentUser.uid;
+  const ledgerCollection = firestore.collection(db, "users", uid, "ledger");
+  const createdIds = [];
+  const testResults = [];
 
-  function isDenied(siraNya) {
-    return !!siraNya && siraNya.code === "permission-denied";
+  function isDenied(error) {
+    return !!error && error.code === "permission-denied";
   }
 
-  function check(labelTxt, okBa, extraTxt) {
-    resultaArr.push(okBa);
-    console.log((okBa ? "PASS  " : "FAIL  ") + labelTxt + (extraTxt ? "  (" + extraTxt + ")" : ""));
+  function check(label, passed, extra) {
+    testResults.push(passed);
+    console.log((passed ? "PASS  " : "FAIL  ") + label + (extra ? "  (" + extra + ")" : ""));
   }
 
   try {
-    const naisave = await ledgerMod.addLedgerEntries(uidNya, [
-      { friendName: "ZZ Test Ana", type: "lent", amountCentavos: 20000, note: "Lunch" },
-      { friendName: "ZZ Test Ben", type: "lent", amountCentavos: 3333 },
+    const savedEntries = await ledger.addLedgerEntries(uid, [
+      { friendName: "ZZ Test Ana", type: "lent", amountCents: 20000, note: "Lunch" },
+      { friendName: "ZZ Test Ben", type: "lent", amountCents: 3333 },
     ]);
-    naisave.forEach((isaRow) => ginawaIds.push(isaRow.id));
-    const rowsNya = (await ledgerMod.getLedgerFresh(uidNya)).filter((isaRow) => isaRow.friendName.startsWith("ZZ Test"));
-    const okBa = rowsNya.length === 2 && rowsNya.some((isaRow) => isaRow.amount === 200) && rowsNya.some((isaRow) => isaRow.amount === 33.33);
-    check("ledger.js saves a batch of 2 and reads it back (200 and 33.33)", okBa);
-  } catch (siraNya) {
-    check("ledger.js saves a batch of 2 and reads it back", false, siraNya.code || siraNya.message);
+    savedEntries.forEach((row) => createdIds.push(row.id));
+    const rows = (await ledger.getLedgerFresh(uid)).filter((row) => row.friendName.startsWith("ZZ Test"));
+    const passed = rows.length === 2 && rows.some((row) => row.amount === 200) && rows.some((row) => row.amount === 33.33);
+    check("ledger.js saves a batch of 2 and reads it back (200 and 33.33)", passed);
+  } catch (error) {
+    check("ledger.js saves a batch of 2 and reads it back", false, error.code || error.message);
   }
 
   const goodDoc = { friendName: "ZZ Test Raw", friendKey: "zz test raw", type: "lent", amount: 5, note: "", date: "2026-11-20" };
 
-  async function tryCreate(labelTxt, dataNya, shouldWork, createdAtVal) {
+  async function tryCreate(label, data, shouldWork, createdAtVal) {
     try {
-      const bagongRef = await fireMod.addDoc(utangCol, { ...dataNya, createdAt: createdAtVal || fireMod.serverTimestamp() });
-      ginawaIds.push(bagongRef.id);
-      check(labelTxt, shouldWork, shouldWork ? "allowed" : "ALLOWED but it should be denied");
-    } catch (siraNya) {
-      check(labelTxt, !shouldWork && isDenied(siraNya), siraNya.code || siraNya.message);
+      const newDocRef = await firestore.addDoc(ledgerCollection, { ...data, createdAt: createdAtVal || firestore.serverTimestamp() });
+      createdIds.push(newDocRef.id);
+      check(label, shouldWork, shouldWork ? "allowed" : "ALLOWED but it should be denied");
+    } catch (error) {
+      check(label, !shouldWork && isDenied(error), error.code || error.message);
     }
   }
 
@@ -63,39 +63,39 @@
   await tryCreate("missing note is denied", withoutNote, false);
   await tryCreate("a createdAt made by the browser clock is denied", goodDoc, false, new Date());
 
-  if (ginawaIds.length > 0) {
+  if (createdIds.length > 0) {
     try {
-      await fireMod.updateDoc(fireMod.doc(db, "users", uidNya, "ledger", ginawaIds[0]), { amount: 1 });
+      await firestore.updateDoc(firestore.doc(db, "users", uid, "ledger", createdIds[0]), { amount: 1 });
       check("editing an entry is denied", false, "UPDATE WAS ALLOWED");
-    } catch (siraNya) {
-      check("editing an entry is denied", isDenied(siraNya), siraNya.code || siraNya.message);
+    } catch (error) {
+      check("editing an entry is denied", isDenied(error), error.code || error.message);
     }
   }
   try {
-    await fireMod.getDocs(fireMod.collection(db, "users", "someone-elses-uid", "ledger"));
+    await firestore.getDocs(firestore.collection(db, "users", "someone-elses-uid", "ledger"));
     check("reading another user's ledger is denied", false, "READ WAS ALLOWED");
-  } catch (siraNya) {
-    check("reading another user's ledger is denied", isDenied(siraNya), siraNya.code || siraNya.message);
+  } catch (error) {
+    check("reading another user's ledger is denied", isDenied(error), error.code || error.message);
   }
   try {
-    await fireMod.addDoc(fireMod.collection(db, "users", "someone-elses-uid", "ledger"), { ...goodDoc, createdAt: fireMod.serverTimestamp() });
+    await firestore.addDoc(firestore.collection(db, "users", "someone-elses-uid", "ledger"), { ...goodDoc, createdAt: firestore.serverTimestamp() });
     check("writing to another user's ledger is denied", false, "WRITE WAS ALLOWED");
-  } catch (siraNya) {
-    check("writing to another user's ledger is denied", isDenied(siraNya), siraNya.code || siraNya.message);
+  } catch (error) {
+    check("writing to another user's ledger is denied", isDenied(error), error.code || error.message);
   }
 
-  let natanggal = 0;
-  for (const docIdNya of ginawaIds) {
+  let deletedCount = 0;
+  for (const docId of createdIds) {
     try {
-      await ledgerMod.deleteLedgerEntry(uidNya, docIdNya);
-      natanggal++;
-    } catch (siraNya) {
-      console.log("Could not delete " + docIdNya + ": " + siraNya.code);
+      await ledger.deleteLedgerEntry(uid, docId);
+      deletedCount++;
+    } catch (error) {
+      console.log("Could not delete " + docId + ": " + error.code);
     }
   }
-  check("test entries deleted", natanggal === ginawaIds.length, natanggal + " of " + ginawaIds.length);
-  const natira = (await ledgerMod.getLedgerFresh(uidNya)).filter((isaRow) => isaRow.friendName.startsWith("ZZ Test")).length;
-  check("no test entries left behind", natira === 0);
+  check("test entries deleted", deletedCount === createdIds.length, deletedCount + " of " + createdIds.length);
+  const remainingCount = (await ledger.getLedgerFresh(uid)).filter((row) => row.friendName.startsWith("ZZ Test")).length;
+  check("no test entries left behind", remainingCount === 0);
 
-  console.log("\n" + resultaArr.filter(Boolean).length + " of " + resultaArr.length + " checks passed.");
+  console.log("\n" + testResults.filter(Boolean).length + " of " + testResults.length + " checks passed.");
 })();

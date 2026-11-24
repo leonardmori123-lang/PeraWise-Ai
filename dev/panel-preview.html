@@ -26,7 +26,7 @@
           </div>
         </div>
 
-        <p class="muted ledger-empty" hidden>No utang yet.</p>
+        <p class="muted ledger-empty" hidden>No debts yet.</p>
 
         <ul class="friend-list">
 
@@ -123,10 +123,10 @@
   <script>
     document.querySelectorAll(".friend-row").forEach((rowBtn) => {
       rowBtn.addEventListener("click", () => {
-        const historyUl = rowBtn.nextElementSibling;
-        const nakaBukas = rowBtn.getAttribute("aria-expanded") === "true";
-        rowBtn.setAttribute("aria-expanded", String(!nakaBukas));
-        historyUl.hidden = nakaBukas;
+        const historyList = rowBtn.nextElementSibling;
+        const isExpanded = rowBtn.getAttribute("aria-expanded") === "true";
+        rowBtn.setAttribute("aria-expanded", String(!isExpanded));
+        historyList.hidden = isExpanded;
       });
     });
   </script>

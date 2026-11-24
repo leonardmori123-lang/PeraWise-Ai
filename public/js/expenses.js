@@ -7,12 +7,12 @@ export const CATEGORIES = [
   "Food", "Transport", "Bills", "Shopping", "Health", "Education", "Entertainment", "Other",
 ];
 
-function gastosFolder(uidNya) {
-  return collection(db, "users", uidNya, "expenses");
+function getExpensesCollection(uid) {
+  return collection(db, "users", uid, "expenses");
 }
 
-export function addExpense(uidNya, { amount, category, note, date }) {
-  return addDoc(gastosFolder(uidNya), {
+export function addExpense(uid, { amount, category, note, date }) {
+  return addDoc(getExpensesCollection(uid), {
     amount: Number(amount),
     category,
     note: note || "",
@@ -21,45 +21,45 @@ export function addExpense(uidNya, { amount, category, note, date }) {
   });
 }
 
-export function deleteExpense(uidNya, docIdNya) {
-  return deleteDoc(doc(db, "users", uidNya, "expenses", docIdNya));
+export function deleteExpense(uid, docId) {
+  return deleteDoc(doc(db, "users", uid, "expenses", docId));
 }
 
-export function watchExpenses(uidNya, kapagMayList) {
-  const hanapGastos = query(gastosFolder(uidNya), orderBy("date", "desc"));
+export function watchExpenses(uid, callback) {
+  const expensesQuery = query(getExpensesCollection(uid), orderBy("date", "desc"));
   return onSnapshot(
-    hanapGastos,
-    (snapGastos) => kapagMayList(snapGastos.docs.map((isaDoc) => ({ id: isaDoc.id, ...isaDoc.data() }))),
-    (siraListen) => console.error("Expenses listener error:", siraListen)
+    expensesQuery,
+    (snapshot) => callback(snapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }))),
+    (error) => console.error("Expenses listener error:", error)
   );
 }
 
 export function todayString() {
-  const arawNgayon = new Date();
-  const buwanPad = String(arawNgayon.getMonth() + 1).padStart(2, "0");
-  const arawPad = String(arawNgayon.getDate()).padStart(2, "0");
-  return `${arawNgayon.getFullYear()}-${buwanPad}-${arawPad}`;
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${today.getFullYear()}-${month}-${day}`;
 }
 
-export function formatPeso(halagaNum) {
-  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(halagaNum);
+export function formatPeso(amount) {
+  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 }
 
-export function isValidDate(petsaStr) {
-  if (typeof petsaStr !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(petsaStr)) return false;
-  const [taonNum, buwanNum, arawNum] = petsaStr.split("-").map(Number);
-  const checkDt = new Date(taonNum, buwanNum - 1, arawNum);
-  return checkDt.getFullYear() === taonNum && checkDt.getMonth() === buwanNum - 1 && checkDt.getDate() === arawNum;
+export function isValidDate(dateString) {
+  if (typeof dateString !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+  const [year, month, day] = dateString.split("-").map(Number);
+  const checkDate = new Date(year, month - 1, day);
+  return checkDate.getFullYear() === year && checkDate.getMonth() === month - 1 && checkDate.getDate() === day;
 }
 
-export async function getExpensesInRange(uidNya, simulaPetsa, hanggangPetsa) {
-  const hanapRange = query(
-    gastosFolder(uidNya),
-    where("date", ">=", simulaPetsa),
-    where("date", "<=", hanggangPetsa)
+export async function getExpensesInRange(uid, startDate, endDate) {
+  const rangeQuery = query(
+    getExpensesCollection(uid),
+    where("date", ">=", startDate),
+    where("date", "<=", endDate)
   );
-  const snapRange = await getDocs(hanapRange);
-  return snapRange.docs
-    .map((isaDoc) => ({ id: isaDoc.id, ...isaDoc.data() }))
-    .sort((una, sunod) => (una.date < sunod.date ? 1 : -1));
+  const snapshot = await getDocs(rangeQuery);
+  return snapshot.docs
+    .map((docItem) => ({ id: docItem.id, ...docItem.data() }))
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
